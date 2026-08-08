@@ -51,8 +51,7 @@ const scoreSpread = computed(() => {
 const balanceText = computed(() => {
   if (scoreSpread.value === 0) return "Все цвета равны";
   if (scoreSpread.value === 1) return "Почти идеально";
-  if (scoreSpread.value === 2) return "Разница в 2 очка";
-  return `Разброс ${scoreSpread.value} очка`;
+  return `Разница: ${scoreSpread.value} ${pluralizePoints(scoreSpread.value)}`;
 });
 const paceText = computed(() => {
   if (remaining.value === 0) return "цель достигнута";
@@ -140,7 +139,7 @@ function resetGame(skipConfirmation = false): void {
   if (
     !skipConfirmation &&
     state.turns.length > 0 &&
-    !window.confirm("Начать новую пьесу? Текущая история будет очищена.")
+    !window.confirm("Начать новую пьесу? История текущей пьесы будет удалена.")
   )
     return;
   state.turns.splice(0);
@@ -158,10 +157,7 @@ function startGame(): void {
 }
 function formatGainDetails(result: AnalysisResult): string[] {
   if (state.turns.length === 0) return ["Первая реплика", "+0 восторга"];
-  return [
-    result.shared ? "+1 общий цвет" : "+0 за общий цвет",
-    result.balance ? `+${result.balance} за баланс` : "+0 за баланс"
-  ];
+  return [`Общий цвет +${result.shared}`, `Баланс +${result.balance}`];
 }
 function compactResult(result: AnalysisResult) {
   return {
@@ -296,11 +292,9 @@ onMounted(() => {
   <div class="ambient" aria-hidden="true"></div>
   <main v-if="!state.started" class="screen start-screen is-active">
     <section class="start-card" aria-labelledby="startTitle">
-      <p class="eyebrow">Театральный помощник</p>
+      <p class="eyebrow">Помощник по пьесе</p>
       <h1 id="startTitle" class="start-title">Суфлёр</h1>
-      <p class="start-copy">
-        Следите за цветовым балансом, выбирайте сильные реплики и наберите не меньше 26 очков восторга за 16 ходов.
-      </p>
+      <p class="start-copy">Выбирайте лучшие реплики и наберите 26 очков восторга за 16 ходов.</p>
       <button class="primary-button" type="button" @click="startGame">Начать пьесу</button>
       <p class="start-meta">Версия {{ config.version }} · Автор: {{ config.author }}</p>
     </section>
@@ -324,8 +318,8 @@ onMounted(() => {
             class="ghost-button icon-button"
             :class="{ 'is-success': debugDownloaded }"
             type="button"
-            title="Скачать диагностический снепшот"
-            aria-label="Скачать диагностический снепшот"
+            title="Скачать снимок игры для диагностики"
+            aria-label="Скачать снимок игры для диагностики"
             @click="downloadDebugSnapshot"
           >
             <svg viewBox="0 0 24 24" aria-hidden="true">
@@ -358,7 +352,7 @@ onMounted(() => {
           </ol>
         </div>
         <section class="strategy-preview" aria-label="Оптимальные следующие реплики">
-          <span class="strategy-preview-label">Идеальные варианты</span>
+          <span class="strategy-preview-label">Лучшие сейчас</span>
           <div class="strategy-options">
             <ReplyChips
               v-for="result in idealReplies"
@@ -395,7 +389,7 @@ onMounted(() => {
           <div class="panel-heading">
             <div>
               <h2 id="turnTitle">Следующая реплика</h2>
-              <p>Выберите, какие сведения о ходе вам доступны.</p>
+              <p>Выберите, что вы видите в игре.</p>
             </div>
             <span class="turn-badge"
               >{{ finished ? `${engine.totalTurns} / ${engine.totalTurns}` : `Ход ${currentTurn}` }}</span
@@ -410,7 +404,7 @@ onMounted(() => {
               :aria-selected="state.mode === 'controlled'"
               @click="setMode('controlled')"
             >
-              Контролируемая
+              Вижу 3 варианта
             </button>
             <button
               class="mode-button"
@@ -420,15 +414,15 @@ onMounted(() => {
               :aria-selected="state.mode === 'anonymous'"
               @click="setMode('anonymous')"
             >
-              Анонимная
+              Вижу только выбор
             </button>
           </div>
 
           <section v-if="config.idealRoute && idealRoute" class="route-panel" aria-labelledby="routeTitle">
             <div class="route-heading">
-              <strong id="routeTitle">Победная цепочка</strong
+              <strong id="routeTitle">Лучший маршрут</strong
               ><span class="route-status" :class="{ 'is-warning': !idealRoute.canWin }"
-                >{{ idealRoute.canWin ? "Победа достижима" : "Цепочка не достигает цели" }}</span
+                >{{ idealRoute.canWin ? "Цель достижима" : "Цель недостижима" }}</span
               >
             </div>
             <ol class="victory-chain" aria-label="Оптимальная последовательность оставшихся реплик">
@@ -437,15 +431,15 @@ onMounted(() => {
               </li>
             </ol>
             <p class="route-note">
-              Условный лучший маршрут: он перестраивается после каждого хода, так как будущие предложения неизвестны.
-              Итог: {{ idealRoute.finalAudience }}.
+              Будущие варианты неизвестны, поэтому маршрут обновляется после каждого хода. Возможный итог:
+              {{ idealRoute.finalAudience }}.
             </p>
           </section>
 
           <div v-if="state.mode === 'controlled'" class="mode-content is-active" role="tabpanel">
             <template v-if="config.quickChoice">
               <div class="quick-heading">
-                <span class="field-label">Отметьте три варианта из игры</span
+                <span class="field-label">Выберите 3 варианта из игры</span
                 ><span class="selection-counter"><strong>{{ state.selectedQuickOptions.length }}</strong> из 3</span>
               </div>
               <section class="quick-option-grid" aria-label="Выбор предложенных реплик">
@@ -461,12 +455,9 @@ onMounted(() => {
                   <ReplyChips :reply="reply" />
                 </button>
               </section>
-              <p class="field-help">
-                После третьего выбора расчёт запустится автоматически. Золотая точка отмечает идеальные реплики текущего
-                состояния.
-              </p>
+              <p class="field-help">Расчёт начнётся после третьего выбора. Золотая точка — лучший вариант сейчас.</p>
               <details class="manual-entry">
-                <summary>Ввести варианты строкой</summary>
+                <summary>Или ввести строкой</summary>
                 <div class="input-row">
                   <input
                     ref="optionsElement"
@@ -487,7 +478,7 @@ onMounted(() => {
               </details>
             </template>
             <template v-else>
-              <label class="field-label" for="optionsInput">Три предложенных варианта</label>
+              <label class="field-label" for="optionsInput">Введите 3 варианта из игры</label>
               <div class="input-row">
                 <input
                   id="optionsInput"
@@ -506,16 +497,16 @@ onMounted(() => {
                   Рассчитать
                 </button>
               </div>
-              <p class="field-help">Введите три разные реплики по две буквы: С — синий, З — зелёный, К — красный.</p>
+              <p class="field-help">Три разные реплики через пробел. С — синий, З — зелёный, К — красный.</p>
             </template>
             <p class="error-message" role="alert">{{ optionsError }}</p>
 
             <div v-if="analyzedOptions.length" class="recommendation is-visible" aria-live="polite">
               <div class="recommendation-head">
                 <h3>
-                  {{ analyzedOptions.filter((item) => item.isBest).length > 1 ? "Лучшие варианты" : "Рекомендованный выбор" }}
+                  {{ analyzedOptions.filter((item) => item.isBest).length > 1 ? "Лучшие варианты" : "Что выбрать" }}
                 </h3>
-                <span>Нажмите на фактически выбранную реплику</span>
+                <span>Затем запишите фактический выбор</span>
               </div>
               <div class="option-grid">
                 <article
@@ -524,27 +515,26 @@ onMounted(() => {
                   class="option-card"
                   :class="{ 'is-best': result.isBest }"
                 >
-                  <div class="best-tag">{{ result.isBest ? "рекомендуется" : "другой вариант" }}</div>
+                  <div class="best-tag">{{ result.isBest ? "лучший выбор" : "альтернатива" }}</div>
                   <ReplyChips class="option-reply" :reply="result.reply" />
                   <div class="option-points">
                     <span v-for="line in formatGainDetails(result)" :key="line">{{ line }}</span
                     ><strong>Сейчас +{{ result.gain }}</strong
-                    ><span>Идеальный итог: <strong>{{ result.projectedAudience }}</strong></span>
+                    ><span>Потенциал: <strong>{{ result.projectedAudience }}</strong></span>
                   </div>
                   <button class="choose-button" type="button" @click="addTurn(result.reply, 'controlled')">
-                    Выбрано в игре
+                    Записать этот выбор
                   </button>
                 </article>
               </div>
               <p class="rule-note">
-                Стратегия строит лучший достижимый маршрут до конца пьесы. Будущая выдача неизвестна, поэтому маршрут
-                пересчитывается после каждого фактического хода.
+                Расчёт максимизирует итог. Будущие варианты неизвестны — стратегия обновляется после каждого хода.
               </p>
             </div>
           </div>
 
           <div v-else class="mode-content is-active" role="tabpanel">
-            <label class="field-label" for="resultInput">Результат неизвестного выбора</label>
+            <label class="field-label" for="resultInput">Какая реплика была выбрана?</label>
             <div class="input-row">
               <input
                 id="resultInput"
@@ -560,10 +550,10 @@ onMounted(() => {
                 @input="handleResultInput"
                 @keydown.enter.prevent="handleAnonymousRecord"
               ><button class="primary-button" type="button" :disabled="finished" @click="handleAnonymousRecord">
-                Записать ход
+                Записать
               </button>
             </div>
-            <p class="field-help">Введите только выбранную в игре реплику, например КК или КЗ.</p>
+            <p class="field-help">Введите выбранную реплику, например КК или КЗ.</p>
             <p class="error-message" role="alert">{{ resultError }}</p>
           </div>
 
@@ -613,7 +603,7 @@ onMounted(() => {
             </div>
             <div class="history-list">
               <div v-if="!calculated.calculatedTurns.length" class="empty-history">
-                Завершённые реплики появятся здесь. Последний ход всегда можно отменить.
+                Ходы появятся здесь. Последний ход можно отменить.
               </div>
               <article
                 v-for="turn in [...calculated.calculatedTurns].reverse()"
@@ -624,9 +614,9 @@ onMounted(() => {
                 <span class="history-number">{{ turn.number }}</span>
                 <ReplyChips class="history-reply" :reply="turn.reply" />
                 <div class="history-meta">
-                  <strong>{{ turn.type === "anonymous" ? "анонимная" : "контролируемая" }}</strong
+                  <strong>{{ turn.type === "anonymous" ? "только выбор" : "три варианта" }}</strong
                   ><span
-                    >{{ turn.number === 1 ? "первая реплика" : `цвет +${turn.shared}, баланс +${turn.balance}` }}</span
+                    >{{ turn.number === 1 ? "первая реплика" : `общий цвет +${turn.shared} · баланс +${turn.balance}` }}</span
                   >
                 </div>
                 <span class="history-gain">+{{ turn.gain }}</span>

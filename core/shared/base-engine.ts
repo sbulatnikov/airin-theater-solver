@@ -64,7 +64,7 @@ export abstract class BaseEngine implements SolverEngine {
   public parseReply(value: string): ParseResult<string> {
     const normalized = this.normalizeText(value);
     if (!/^[СЗК]{2}$/.test(normalized)) {
-      return { ok: false, error: "Реплика должна состоять ровно из двух букв: С, З или К." };
+      return { ok: false, error: "Введите реплику из двух букв: С, З или К." };
     }
     return { ok: true, value: normalized };
   }
@@ -72,7 +72,7 @@ export abstract class BaseEngine implements SolverEngine {
   public parseOptions(value: string): ParseResult<string[]> {
     const parts = this.normalizeText(value).split(/\s+/).filter(Boolean);
     if (parts.length !== 3) {
-      return { ok: false, error: "Введите ровно три реплики, разделяя их пробелами." };
+      return { ok: false, error: "Введите три реплики через пробел." };
     }
     const replies: string[] = [];
     for (const part of parts) {
@@ -82,7 +82,7 @@ export abstract class BaseEngine implements SolverEngine {
     }
     const signatures = replies.map((reply) => this.replySignature(reply));
     if (new Set(signatures).size !== signatures.length) {
-      return { ok: false, error: "Все три варианта должны отличаться. КЗ и ЗК считаются одной репликой." };
+      return { ok: false, error: "Введите три разные реплики. КЗ и ЗК — один вариант." };
     }
     return { ok: true, value: replies };
   }
