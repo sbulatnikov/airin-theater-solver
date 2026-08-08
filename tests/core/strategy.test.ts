@@ -24,6 +24,16 @@ describe.each(engines)("%s: анализ доступных вариантов",
   it("не прогнозирует будущие очки, когда ходов не осталось", () => {
     expect(engine.bestFutureGain({ blue: 4, green: 4, red: 4 }, "СК", 0)).toBe(0);
   });
+
+  it("возвращает пустой анализ без вариантов и после последнего хода", () => {
+    expect(engine.analyzeOptions([], [])).toEqual([]);
+    expect(engine.analyzeOptions(asTurns(Array.from({ length: 16 }, () => "СС")), ["СС"])).toEqual([]);
+  });
+
+  it("ограничивает публичный прогноз правилами одной пьесы", () => {
+    expect(() => engine.bestFutureGain({ blue: 0, green: 0, red: 0 }, "СК", 17)).toThrow(RangeError);
+    expect(() => engine.analyzeOptions([], ["УК"])).toThrow(TypeError);
+  });
 });
 
 describe("@airin-play/core/v2: победная цепочка", () => {

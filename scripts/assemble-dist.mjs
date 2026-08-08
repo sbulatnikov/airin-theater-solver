@@ -8,11 +8,19 @@ const v2Html = await readFile(resolve(root, ".build/v2/index.html"), "utf8");
 const v1Version = JSON.parse(await readFile(resolve(root, "apps/v1/package.json"), "utf8")).version;
 const v2Version = JSON.parse(await readFile(resolve(root, "apps/v2/package.json"), "utf8")).version;
 
-if (!v1Html.includes(v1Version) || v1Html.includes(v2Version)) {
-  throw new Error("Сборка v1 содержит неверную версию или зависимость v2.");
-}
-if (!v2Html.includes(v2Version) || v2Html.includes(v1Version)) {
-  throw new Error("Сборка v2 содержит неверную версию или зависимость v1.");
+const builds = [
+  { name: "v1", html: v1Html, version: v1Version, marker: "classic", foreignMarker: "strategy-tree" },
+  { name: "v2", html: v2Html, version: v2Version, marker: "strategy-tree", foreignMarker: "classic" }
+];
+
+for (const build of builds) {
+  if (
+    !build.html.includes(build.version) ||
+    !build.html.includes(build.marker) ||
+    build.html.includes(build.foreignMarker)
+  ) {
+    throw new Error(`Сборка ${build.name} содержит код или метаданные другого поколения.`);
+  }
 }
 
 await rm(dist, { recursive: true, force: true });

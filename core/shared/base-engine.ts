@@ -87,6 +87,18 @@ export abstract class BaseEngine implements SolverEngine {
     return { ok: true, value: replies };
   }
 
+  private requireReply(value: string, context: string): string {
+    const parsed = this.parseReply(value);
+    if (!parsed.ok) throw new TypeError(`${context}: ${parsed.error}`);
+    return parsed.value;
+  }
+
+  private requireHistory(turns: readonly TurnInput[]): void {
+    if (turns.length > this.totalTurns) {
+      throw new RangeError(`История не может содержать больше ${this.totalTurns} реплик.`);
+    }
+  }
+
   public replyContribution(reply: string): Scores {
     const result = emptyScores();
     const first = COLOR_BY_LETTER[reply[0] as keyof typeof COLOR_BY_LETTER];
@@ -143,16 +155,19 @@ export abstract class BaseEngine implements SolverEngine {
   }
 
   public calculateState(turns: readonly TurnInput[] = []): GameCalculation {
+    this.requireHistory(turns);
     const scores = emptyScores();
     let audience = 0;
     let previous: string | null = null;
     const calculatedTurns = turns.map((turn, index) => {
-      const result = this.transition(scores, previous, turn.reply, index > 0);
+      const reply = this.requireReply(turn.reply, `Реплика ${index + 1}`);
+      const result = this.transition(scores, previous, reply, index > 0);
       Object.assign(scores, result.scores);
       audience += result.gain;
-      previous = turn.reply;
+      previous = reply;
       return {
         ...turn,
+        reply,
         number: index + 1,
         contribution: result.contribution,
         shared: result.shared,
@@ -166,14 +181,22 @@ export abstract class BaseEngine implements SolverEngine {
   }
 
   public bestFutureGain(scores: Scores, previousReply: string, turnsRemaining: number): number {
-    if (turnsRemaining <= 0) return 0;
+    if (!Number.isInteger(turnsRemaining) || turnsRemaining < 0 || turnsRemaining > this.totalTurns) {
+      throw new RangeError(`Количество оставшихся ходов должно быть целым числом от 0 до ${this.totalTurns}.`);
+    }
+    const normalizedPrevious = this.requireReply(previousReply, "Предыдущая реплика");
+    return this.memoizedBestFutureGain(scores, normalizedPrevious, turnsRemaining);
+  }
+
+  private memoizedBestFutureGain(scores: Scores, previousReply: string, turnsRemaining: number): number {
+    if (turnsRemaining === 0) return 0;
     const key = `${turnsRemaining}|${scores.blue},${scores.green},${scores.red}|${this.replySignature(previousReply)}`;
     const cached = this.strategyMemo.get(key);
     if (cached !== undefined) return cached;
     let best = 0;
     for (const reply of REPLY_TYPES) {
       const result = this.transition(scores, previousReply, reply, true);
-      best = Math.max(best, result.gain + this.bestFutureGain(result.scores, reply, turnsRemaining - 1));
+      best = Math.max(best, result.gain + this.memoizedBestFutureGain(result.scores, reply, turnsRemaining - 1));
     }
     this.strategyMemo.set(key, best);
     return best;
@@ -181,8 +204,10 @@ export abstract class BaseEngine implements SolverEngine {
 
   public analyzeOptions(turns: readonly TurnInput[], options: readonly string[]): AnalysisResult[] {
     const current = this.calculateState(turns);
+    if (turns.length === this.totalTurns || options.length === 0) return [];
     const futureTurns = Math.max(0, TOTAL_TURNS - turns.length - 1);
-    const results = options.map((reply) => {
+    const results = options.map((option, optionIndex) => {
+      const reply = this.requireReply(option, `Вариант ${optionIndex + 1}`);
       const stateAfter = this.calculateState([...turns, { reply, type: "controlled" }]);
       const calculatedTurn = stateAfter.calculatedTurns.at(-1);
       if (!calculatedTurn) throw new Error("Не удалось рассчитать добавленную реплику.");

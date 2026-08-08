@@ -49,4 +49,15 @@ describe.each(engines)("%s: расчёт состояния", (_path, engine) =>
     expect(turns).toEqual(before);
     expect(engine.calculateState(turns.slice(0, -1))).toEqual(engine.calculateState(before.slice(0, -1)));
   });
+
+  it("нормализует допустимые реплики на публичной границе", () => {
+    const result = engine.calculateState([{ reply: "ck", type: "anonymous" }]);
+    expect(result.previous).toBe("СК");
+    expect(result.calculatedTurns[0]?.reply).toBe("СК");
+  });
+
+  it("отклоняет некорректную и слишком длинную историю", () => {
+    expect(() => engine.calculateState([{ reply: "УК", type: "anonymous" }])).toThrow(TypeError);
+    expect(() => engine.calculateState(asTurns(Array.from({ length: 17 }, () => "СС")))).toThrow(RangeError);
+  });
 });
