@@ -135,6 +135,10 @@ input {
 }
 button {
   color: inherit;
+  touch-action: manipulation;
+}
+summary {
+  touch-action: manipulation;
 }
 button:focus-visible,
 input:focus-visible,
@@ -204,7 +208,8 @@ summary:focus-visible {
 .app-shell {
   width: min(calc(100% - var(--page-gutter) - var(--page-gutter)), var(--content-max));
   margin: 0 auto;
-  padding: clamp(18px, 1.4vw, 36px) 0 clamp(32px, 3vw, 72px);
+  padding: max(clamp(18px, 1.4vw, 36px), env(safe-area-inset-top)) env(safe-area-inset-right)
+    max(clamp(32px, 3vw, 72px), env(safe-area-inset-bottom)) env(safe-area-inset-left);
 }
 .topbar {
   justify-content: space-between;
@@ -480,6 +485,13 @@ summary:focus-visible {
   align-items: center;
   gap: 14px;
   display: flex;
+}
+.panel-heading > *,
+.section-title > *,
+.route-heading > *,
+.quick-heading > *,
+.recommendation-head > * {
+  min-width: 0;
 }
 h2,
 h3,
@@ -917,6 +929,20 @@ p {
   }
 }
 @media (max-width: 1120px) {
+  .ghost-button,
+  .mode-button,
+  .choose-button,
+  .secondary-button {
+    min-height: 44px;
+  }
+  .icon-button {
+    width: 44px;
+  }
+  .manual-entry summary {
+    align-items: center;
+    min-height: 44px;
+    display: flex;
+  }
   .progress-panel {
     grid-template-columns: auto 1fr auto;
   }
@@ -931,20 +957,59 @@ p {
   }
 }
 @media (max-width: 760px) {
+  html,
+  body {
+    max-width: 100%;
+    overflow-x: clip;
+  }
   .app-shell {
-    width: calc(100% - 20px);
-    padding: 10px 0 32px;
+    width: 100%;
+    padding: max(10px, env(safe-area-inset-top)) max(10px, env(safe-area-inset-right))
+      max(32px, env(safe-area-inset-bottom)) max(10px, env(safe-area-inset-left));
+  }
+  .topbar {
+    gap: 10px;
+  }
+  .brand {
+    min-width: 0;
+    gap: 8px;
+  }
+  .brand > :last-child {
+    min-width: 0;
   }
   .brand-subtitle {
-    max-width: 230px;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    max-width: min(230px, 38vw);
+    overflow: hidden;
+  }
+  .topbar-actions {
+    flex: none;
+  }
+  .progress-track-wrap {
+    min-width: 0;
   }
   .progress-panel {
     grid-template-columns: auto 1fr;
+    gap: 12px;
     padding: 14px;
   }
+  .progress-labels {
+    gap: 8px;
+  }
+  .progress-labels strong {
+    text-align: right;
+  }
+  .turn-track {
+    gap: 3px;
+  }
   .pace {
-    text-align: left;
     grid-column: 1 / -1;
+    justify-content: space-between;
+    align-items: baseline;
+    gap: 12px;
+    min-width: 0;
+    display: flex;
   }
   .workspace {
     grid-template-columns: 1fr;
@@ -958,32 +1023,141 @@ p {
   .quick-option-grid {
     grid-template-columns: repeat(3, 1fr);
   }
+  .turn-panel {
+    flex-direction: column;
+    padding: 18px;
+    display: flex;
+  }
+  .turn-panel > .panel-heading {
+    order: 1;
+  }
+  .turn-panel > .mode-switch {
+    order: 2;
+  }
+  .turn-panel > .mode-content {
+    order: 3;
+  }
+  .turn-panel > .route-panel {
+    order: 4;
+  }
+  .turn-panel > .finish-banner {
+    order: 5;
+  }
+  .route-panel {
+    margin: 16px 0 0;
+  }
+  .route-heading,
+  .quick-heading,
+  .recommendation-head {
+    align-items: flex-start;
+    flex-wrap: wrap;
+    gap: 6px 10px;
+  }
+  .manual-entry summary {
+    align-items: center;
+    min-height: 44px;
+    display: flex;
+  }
+  .history-panel {
+    order: -1;
+  }
+  .history-list {
+    max-height: none;
+    overflow-y: visible;
+  }
 }
 @media (max-width: 520px) {
   .start-screen.is-active {
-    padding: 14px;
+    padding: max(14px, env(safe-area-inset-top)) max(14px, env(safe-area-inset-right))
+      max(14px, env(safe-area-inset-bottom)) max(14px, env(safe-area-inset-left));
+  }
+  .start-card {
+    border-radius: 20px;
+    padding: 30px 20px;
   }
   .topbar {
-    align-items: flex-start;
+    align-items: center;
+    gap: 8px;
   }
   .brand-subtitle {
     display: none;
   }
+  .brand-mark {
+    flex: none;
+    width: 40px;
+    height: 40px;
+  }
+  .brand-name {
+    font-size: 20px;
+  }
+  .topbar-actions {
+    gap: 6px;
+  }
+  .ghost-button {
+    padding: 0 10px;
+    font-size: 11px;
+  }
+  .icon-button {
+    width: 44px;
+    padding: 0;
+  }
+  .progress-panel {
+    gap: 10px 12px;
+    padding: 12px;
+  }
+  .score-number {
+    font-size: 36px;
+  }
+  .score-target {
+    font-size: 14px;
+  }
   .color-scores {
-    gap: 5px;
+    gap: 6px;
+    margin: 8px 0;
   }
   .color-score {
-    min-height: 60px;
-    padding: 10px;
+    align-items: flex-start;
+    gap: 4px;
+    min-width: 0;
+    min-height: 68px;
+    padding: 9px;
+    flex-direction: column;
   }
   .color-label {
     font-size: 11px;
   }
   .color-value {
+    align-self: flex-end;
     font-size: 22px;
+  }
+  .turn-panel {
+    padding: 16px;
+  }
+  .panel-heading {
+    align-items: flex-start;
+    gap: 8px;
+  }
+  .panel-heading h2,
+  .section-title h2 {
+    font-size: 20px;
+  }
+  .turn-badge {
+    flex: none;
+    padding: 6px 9px;
+  }
+  .mode-switch {
+    margin: 16px 0 14px;
+  }
+  .mode-button {
+    padding: 0 6px;
+    font-size: 12px;
+    line-height: 1.2;
   }
   .input-row {
     flex-direction: column;
+  }
+  .input-row .primary-button {
+    width: 100%;
   }
   .side-stack {
     grid-template-columns: 1fr;
@@ -993,6 +1167,58 @@ p {
   }
   .progress-labels {
     font-size: 11px;
+  }
+  .route-note {
+    display: none;
+  }
+  .insight-panel,
+  .history-panel {
+    padding: 16px;
+  }
+  .history-item {
+    grid-template-columns: 24px auto minmax(0, 1fr) auto;
+    gap: 6px;
+    padding: 8px;
+  }
+  .history-meta strong {
+    font-size: 11px;
+  }
+  .history-meta span {
+    font-size: 9px;
+  }
+}
+@media (pointer: coarse) {
+  .ghost-button,
+  .mode-button,
+  .choose-button,
+  .secondary-button {
+    min-height: 44px;
+  }
+  .icon-button {
+    width: 44px;
+  }
+  .manual-entry summary {
+    min-height: 44px;
+  }
+}
+@media (orientation: landscape) and (max-height: 520px) and (min-width: 600px) and (max-width: 760px) {
+  .app-shell {
+    padding-top: max(8px, env(safe-area-inset-top));
+  }
+  .topbar {
+    margin-bottom: 8px;
+  }
+  .color-scores {
+    margin: 8px 0;
+  }
+  .quick-option-grid {
+    grid-template-columns: repeat(6, 1fr);
+  }
+  .option-grid {
+    grid-template-columns: repeat(3, 1fr);
+  }
+  .side-stack {
+    grid-template-columns: 1fr 1fr;
   }
 }
 @media (prefers-reduced-motion: reduce) {
