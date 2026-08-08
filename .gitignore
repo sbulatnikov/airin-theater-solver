@@ -1,0 +1,8 @@
+node_modules/
+dist/
+.build/
+*.log
+airinplay-debug-*.txt
+.DS_Store
+.idea/
+.vscode/

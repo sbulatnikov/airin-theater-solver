@@ -1,0 +1,33 @@
+{
+  "name": "airin-play-solver",
+  "private": true,
+  "version": "0.0.0",
+  "type": "module",
+  "packageManager": "pnpm@11.16.0",
+  "engines": {
+    "node": ">=24 <25",
+    "pnpm": ">=11 <12"
+  },
+  "scripts": {
+    "dev:v1": "pnpm --filter @airin-play/v1 dev",
+    "dev:v2": "pnpm --filter @airin-play/v2 dev",
+    "build:v1": "pnpm --filter @airin-play/v1 build",
+    "build:v2": "pnpm --filter @airin-play/v2 build",
+    "build": "pnpm build:v1 && pnpm build:v2 && node scripts/assemble-dist.mjs",
+    "version:set": "node scripts/bump-version.mjs",
+    "lint": "biome lint .",
+    "format": "biome format --write .",
+    "format:check": "biome format .",
+    "check": "biome check .",
+    "check:write": "biome check --write .",
+    "typecheck": "pnpm --filter @airin-play/v1 typecheck && pnpm --filter @airin-play/v2 typecheck",
+    "test:unit": "vitest run --pool=threads --maxWorkers=1",
+    "test": "pnpm check && pnpm typecheck && pnpm test:unit && pnpm build"
+  },
+  "devDependencies": {
+    "@airin-play/core": "workspace:*",
+    "@biomejs/biome": "catalog:",
+    "typescript": "catalog:",
+    "vitest": "catalog:"
+  }
+}

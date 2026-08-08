@@ -1,0 +1,11 @@
+{
+  "name": "@airin-play/core",
+  "private": true,
+  "version": "0.1.0",
+  "type": "module",
+  "exports": {
+    "./shared": "./shared/index.ts",
+    "./v1": "./v1/engine.ts",
+    "./v2": "./v2/engine.ts"
+  }
+}

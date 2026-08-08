@@ -1,0 +1,10 @@
+{
+  "extends": "../../tsconfig.json",
+  "include": [
+    "src/**/*.ts",
+    "../../packages/**/*.ts",
+    "../../packages/**/*.vue",
+    "../../core/**/*.ts",
+    "vite.config.ts"
+  ]
+}

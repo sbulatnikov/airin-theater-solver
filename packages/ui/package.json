@@ -1,0 +1,14 @@
+{
+  "name": "@airin-play/ui",
+  "private": true,
+  "version": "0.1.0",
+  "type": "module",
+  "exports": {
+    ".": "./src/SolverApp.vue",
+    "./config": "./src/config.ts"
+  },
+  "dependencies": {
+    "@airin-play/core": "workspace:*",
+    "vue": "catalog:"
+  }
+}
