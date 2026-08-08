@@ -197,7 +197,7 @@ function buildDebugPayload() {
     },
     capturedAt: new Date().toISOString(),
     environment: {
-      page: window.location.href,
+      page: window.location.href.split(/[?#]/, 1)[0],
       userAgent: navigator.userAgent,
       language: navigator.language,
       viewport: { width: window.innerWidth, height: window.innerHeight },
@@ -487,6 +487,7 @@ onMounted(() => {
                   class="reply-input"
                   :class="{ 'is-invalid': optionsError }"
                   type="text"
+                  maxlength="8"
                   autocomplete="off"
                   spellcheck="false"
                   placeholder="СС СК СЗ"
@@ -543,6 +544,7 @@ onMounted(() => {
                 class="reply-input"
                 :class="{ 'is-invalid': resultError }"
                 type="text"
+                maxlength="2"
                 autocomplete="off"
                 spellcheck="false"
                 placeholder="КЗ"

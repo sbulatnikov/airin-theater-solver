@@ -22,7 +22,7 @@ Workflow `.github/workflows/pages.yml` запускается при push в `ma
 
 1. checkout репозитория;
 2. установка pnpm и Node.js 24;
-3. `pnpm install --frozen-lockfile`;
+3. `pnpm install --frozen-lockfile --ignore-scripts`;
 4. `pnpm test`;
 5. загрузка `dist` как Pages artifact;
 6. публикация artifact в environment `github-pages`.
@@ -35,3 +35,7 @@ Workflow `.github/workflows/pages.yml` запускается при push в `ma
 - `https://user.github.io/repository/v2/`.
 
 Относительные пути и `base: "./"` позволяют тем же файлам работать как в подпапке GitHub Pages, так и локально через `file://`.
+
+Все сторонние Actions закреплены по полным commit SHA. Права выдаются отдельно: сборка получает только чтение
+репозитория, а `pages: write` и OIDC-токен доступны только короткому заданию публикации. Dependabot еженедельно
+предлагает обновления npm-зависимостей и закреплённых Actions.
