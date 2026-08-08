@@ -6,6 +6,7 @@
 - [scoring.md](scoring.md) — известные правила мини-игры и примеры расчёта;
 - [development.md](development.md) — установка, команды и проверка изменений;
 - [versioning.md](versioning.md) — политика SemVer для двух поколений;
+- [releases.md](releases.md) — календарные релизы и неизменяемые Git-теги репозитория;
 - [debug-snapshots.md](debug-snapshots.md) — состав и расшифровка диагностического файла;
 - [deployment.md](deployment.md) — автономная сборка и публикация на GitHub Pages.
 

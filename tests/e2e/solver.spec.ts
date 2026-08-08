@@ -86,3 +86,15 @@ test("пьеса завершается ровно после 16 реплик", 
   await expect(page.getByRole("heading", { name: "Занавес" })).toBeVisible();
   await expect(input).toBeDisabled();
 });
+
+test("тема следует системе и сохраняет ручной выбор", async ({ page }) => {
+  await page.emulateMedia({ colorScheme: "dark" });
+  await page.goto("/v2/");
+  await expect(page.locator("html")).toHaveAttribute("data-theme", "dark");
+  await page.getByRole("button", { name: "Включить светлую тему" }).click();
+  await expect(page.locator("html")).toHaveAttribute("data-theme", "light");
+  await expect(page.locator('meta[name="theme-color"]')).toHaveAttribute("content", "#f4f1eb");
+
+  await page.reload();
+  await expect(page.locator("html")).toHaveAttribute("data-theme", "light");
+});

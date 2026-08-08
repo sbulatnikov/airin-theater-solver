@@ -4,7 +4,9 @@ const viewports = [
   { name: "ultrawide-3440", width: 3440, height: 1440, twoColumns: true },
   { name: "full-hd", width: 1920, height: 1080, twoColumns: true },
   { name: "square", width: 1024, height: 1024, twoColumns: false },
-  { name: "four-three", width: 1024, height: 768, twoColumns: false }
+  { name: "four-three", width: 1024, height: 768, twoColumns: false },
+  { name: "phone-portrait", width: 390, height: 844, twoColumns: false },
+  { name: "phone-landscape", width: 844, height: 390, twoColumns: false }
 ] as const;
 
 async function open(page: Page, path: string): Promise<void> {
@@ -37,6 +39,21 @@ for (const path of ["/v1/", "/v2/"]) {
       if (viewport.width === 3440) {
         const shell = await page.locator(".app-shell").boundingBox();
         expect(shell?.width).toBeGreaterThanOrEqual(2600);
+      }
+
+      if (viewport.width < 900) {
+        const undersizedTargets = await page
+          .locator("button:visible, input:visible, summary:visible")
+          .evaluateAll((elements) =>
+            elements
+              .map((element) => ({
+                label: element.getAttribute("aria-label") ?? element.textContent?.trim(),
+                rect: element.getBoundingClientRect()
+              }))
+              .filter(({ rect }) => rect.width < 44 || rect.height < 44)
+              .map(({ label, rect }) => ({ label, width: rect.width, height: rect.height }))
+          );
+        expect(undersizedTargets).toEqual([]);
       }
     });
   }

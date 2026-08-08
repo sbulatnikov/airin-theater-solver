@@ -1,0 +1,98 @@
+name: Finalize repository release
+
+on:
+  pull_request:
+    branches: [main]
+    types: [closed]
+
+permissions: {}
+
+jobs:
+  tag:
+    if: >-
+      github.event.pull_request.merged == true &&
+      (startsWith(github.event.pull_request.head.ref, 'rc/') ||
+      startsWith(github.event.pull_request.head.ref, 'hotfix/'))
+    runs-on: ubuntu-24.04
+    timeout-minutes: 5
+    permissions:
+      contents: write
+    outputs:
+      release_tag: ${{ steps.release.outputs.release_tag }}
+    steps:
+      - name: Checkout merged commit
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          fetch-depth: 0
+          persist-credentials: false
+          ref: ${{ github.event.pull_request.merge_commit_sha }}
+
+      - name: Install Node.js
+        uses: actions/setup-node@249970729cb0ef3589644e2896645e5dc5ba9c38 # v6.5.0
+        with:
+          node-version: 24
+
+      - name: Resolve stable release
+        id: release
+        shell: bash
+        env:
+          SOURCE_BRANCH: ${{ github.event.pull_request.head.ref }}
+        run: |
+          latest_stable="$(git tag --list '20*' --sort=-version:refname | \
+            grep -E '^20[0-9]{2}\.[1-9][0-9]*(\.[1-9][0-9]*)?$' | head -1)"
+          if [[ -z "$latest_stable" ]]; then
+            echo "No stable repository tag exists." >&2
+            exit 1
+          fi
+
+          if [[ "$SOURCE_BRANCH" == rc/* ]]; then
+            candidate="${SOURCE_BRANCH#rc/}"
+            if [[ ! "$candidate" =~ ^(20[0-9]{2}\.[1-9][0-9]*(\.[1-9][0-9]*)?)-rc\.[1-9][0-9]*$ ]]; then
+              echo "Invalid RC branch: $SOURCE_BRANCH" >&2
+              exit 1
+            fi
+            base_release="${BASH_REMATCH[1]}"
+            if [[ "$base_release" != "$latest_stable" ]]; then
+              echo "RC is based on $base_release, but latest stable is $latest_stable." >&2
+              exit 1
+            fi
+            if ! git rev-parse --verify --quiet "refs/tags/${candidate}^{commit}" >/dev/null; then
+              echo "RC must be frozen before merge: tag $candidate is missing." >&2
+              exit 1
+            fi
+            stable="$(node scripts/next-release.mjs feature "$base_release")"
+          else
+            stable="$(node scripts/next-release.mjs hotfix "$latest_stable")"
+          fi
+
+          node scripts/verify-release-tag.mjs "$stable"
+          if git rev-parse --verify --quiet "refs/tags/${stable}" >/dev/null; then
+            echo "Stable tag already exists: $stable" >&2
+            exit 1
+          fi
+          echo "release_tag=$stable" >> "$GITHUB_OUTPUT"
+
+      - name: Create immutable stable tag
+        shell: bash
+        env:
+          GH_TOKEN: ${{ github.token }}
+          RELEASE_TAG: ${{ steps.release.outputs.release_tag }}
+          TARGET_SHA: ${{ github.event.pull_request.merge_commit_sha }}
+        run: |
+          tag_object="$(gh api --method POST "repos/${GITHUB_REPOSITORY}/git/tags" \
+            -f tag="$RELEASE_TAG" \
+            -f message="Airin Theater Solver $RELEASE_TAG" \
+            -f object="$TARGET_SHA" \
+            -f type=commit \
+            --jq .sha)"
+          gh api --method POST "repos/${GITHUB_REPOSITORY}/git/refs" \
+            -f ref="refs/tags/$RELEASE_TAG" \
+            -f sha="$tag_object"
+
+  publish:
+    needs: tag
+    permissions:
+      contents: write
+    uses: ./.github/workflows/release.yml
+    with:
+      release_tag: ${{ needs.tag.outputs.release_tag }}

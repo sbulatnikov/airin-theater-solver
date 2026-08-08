@@ -30,7 +30,7 @@ git pull --ff-only
 git switch -c fix/short-description
 ```
 
-Допустимые префиксы: `fix/`, `feat/`, `docs/`, `test/`, `refactor/`.
+Допустимые префиксы: `fix/`, `feat/`, `hotfix/`, `docs/`, `test/`, `refactor/`.
 
 ## Границы версий
 
@@ -82,6 +82,8 @@ pnpm version:set v2 2.3.0
 - debug-снепшот или лог партии для исправлений механики.
 
 Сохраняйте commits небольшими и осмысленными. Не переписывайте историю после начала review без необходимости.
+
+Рабочий pull request открывается в `main`, но после approval не вливается туда напрямую. Maintainer включает его в единственную активную ветку вида `rc/2026.1-rc.1` одним squash-коммитом. После ручной job Freeze ветка и RC-тег становятся неизменяемыми; RC PR вливается через rebase merge. Только `hotfix/*` после approval может быть влит непосредственно в `main`, при этом общая версия обязана повысить только patch. Подробный процесс описан в [docs/releases.md](docs/releases.md).
 
 ## Передача `.patch` без pull request
 
