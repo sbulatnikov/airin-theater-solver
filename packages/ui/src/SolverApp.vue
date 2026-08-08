@@ -6,8 +6,9 @@ import {
   type TurnInput,
   type TurnType
 } from "@airin-play/core/shared";
-import { computed, nextTick, onMounted, reactive, ref } from "vue";
+import { computed, nextTick, onBeforeUnmount, onMounted, reactive, ref } from "vue";
 import ReplyChips from "./components/ReplyChips.vue";
+import ThemeToggle from "./components/ThemeToggle.vue";
 import type { AppConfig } from "./config";
 import "./styles.css";
 
@@ -27,6 +28,49 @@ const analyzedOptions = ref<AnalysisResult[]>([]);
 const debugDownloaded = ref(false);
 const optionsElement = ref<HTMLInputElement | null>(null);
 const resultElement = ref<HTMLInputElement | null>(null);
+
+type Theme = "dark" | "light";
+const THEME_STORAGE_KEY = "airin-play-theme";
+const DARK_THEME_COLOR = "#0c1118";
+const LIGHT_THEME_COLOR = "#f4f1eb";
+
+function readStoredTheme(): Theme | null {
+  try {
+    const stored = window.localStorage.getItem(THEME_STORAGE_KEY);
+    return stored === "dark" || stored === "light" ? stored : null;
+  } catch {
+    return null;
+  }
+}
+function systemTheme(): Theme {
+  return window.matchMedia("(prefers-color-scheme: dark)").matches ? "dark" : "light";
+}
+
+const storedTheme = ref<Theme | null>(readStoredTheme());
+const theme = ref<Theme>(storedTheme.value ?? systemTheme());
+const colorSchemeQuery = window.matchMedia("(prefers-color-scheme: dark)");
+
+function applyTheme(nextTheme: Theme): void {
+  theme.value = nextTheme;
+  document.documentElement.dataset.theme = nextTheme;
+  document.documentElement.style.colorScheme = nextTheme;
+  document
+    .querySelector('meta[name="theme-color"]')
+    ?.setAttribute("content", nextTheme === "dark" ? DARK_THEME_COLOR : LIGHT_THEME_COLOR);
+}
+function toggleTheme(): void {
+  const nextTheme = theme.value === "dark" ? "light" : "dark";
+  storedTheme.value = nextTheme;
+  try {
+    window.localStorage.setItem(THEME_STORAGE_KEY, nextTheme);
+  } catch {
+    // The theme still applies for this session when storage is unavailable.
+  }
+  applyTheme(nextTheme);
+}
+function handleSystemThemeChange(event: MediaQueryListEvent): void {
+  if (storedTheme.value === null) applyTheme(event.matches ? "dark" : "light");
+}
 
 const calculated = computed(() => engine.calculateState(state.turns));
 const finished = computed(() => state.turns.length >= engine.totalTurns);
@@ -293,6 +337,8 @@ function downloadDebugSnapshot(): void {
   }, 1400);
 }
 onMounted(() => {
+  applyTheme(theme.value);
+  colorSchemeQuery.addEventListener("change", handleSystemThemeChange);
   document.title = `Суфлёр — ${config.version}`;
   document.querySelector('meta[name="version"]')?.setAttribute("content", config.version);
   document.querySelector('meta[name="author"]')?.setAttribute("content", config.author);
@@ -301,11 +347,13 @@ onMounted(() => {
     AirinPlayDebug: { buildDebugPayload, encodeBase64Utf8 }
   });
 });
+onBeforeUnmount(() => colorSchemeQuery.removeEventListener("change", handleSystemThemeChange));
 </script>
 
 <template>
   <div class="ambient" aria-hidden="true"></div>
   <main v-if="!state.started" class="screen start-screen is-active">
+    <ThemeToggle class="start-theme-toggle" :theme="theme" @toggle="toggleTheme" />
     <section class="start-card" aria-labelledby="startTitle">
       <p class="eyebrow">Помощник по пьесе</p>
       <h1 id="startTitle" class="start-title">Суфлёр</h1>
@@ -329,6 +377,7 @@ onMounted(() => {
           </div>
         </div>
         <div class="topbar-actions">
+          <ThemeToggle :theme="theme" @toggle="toggleTheme" />
           <button
             class="ghost-button icon-button"
             :class="{ 'is-success': debugDownloaded }"

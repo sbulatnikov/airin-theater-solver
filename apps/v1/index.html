@@ -8,6 +8,21 @@
     <meta name="description" content="Суфлёр — помощник для прохождения театральной мини-игры Аллодов Онлайн.">
     <meta name="version" content="">
     <meta name="author" content="Бэкендер">
+    <meta name="color-scheme" content="light dark">
+    <meta name="theme-color" content="#f4f1eb">
+    <script>
+    (() => {
+      let savedTheme = null;
+      try {
+        const stored = window.localStorage.getItem("airin-play-theme");
+        if (stored === "dark" || stored === "light") savedTheme = stored;
+      } catch {}
+      const theme = savedTheme ?? (window.matchMedia("(prefers-color-scheme: dark)").matches ? "dark" : "light");
+      document.documentElement.dataset.theme = theme;
+      document.documentElement.style.colorScheme = theme;
+      document.querySelector('meta[name="theme-color"]').content = theme === "dark" ? "#0c1118" : "#f4f1eb";
+    })();
+    </script>
     <link href="https://fonts.googleapis.com/css2?family=Onest:wght@400..800&display=swap" rel="stylesheet">
     <title>Суфлёр</title>
   </head>

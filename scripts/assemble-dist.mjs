@@ -73,6 +73,13 @@ function verifySingleFile(html, variant) {
   if (!html.includes('<meta name="referrer" content="no-referrer">')) {
     throw new Error(`Сборка ${variant} не отключает передачу Referrer.`);
   }
+  if (
+    !html.includes('<meta name="color-scheme" content="light dark">') ||
+    !html.includes('<meta name="theme-color"') ||
+    !html.includes("airin-play-theme")
+  ) {
+    throw new Error(`Сборка ${variant} не содержит полную настройку цветовой темы.`);
+  }
 }
 verifySingleFile(v1Html, "v1");
 verifySingleFile(v2Html, "v2");
