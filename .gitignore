@@ -3,6 +3,9 @@ dist/
 .build/
 *.log
 airinplay-debug-*.txt
+playwright-report/
+test-results/
+blob-report/
 .DS_Store
 .idea/
 .vscode/

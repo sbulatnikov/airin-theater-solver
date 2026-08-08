@@ -76,6 +76,19 @@ function setMode(mode: TurnType): void {
   resultError.value = "";
   void nextTick(() => (mode === "controlled" ? optionsElement.value : resultElement.value)?.focus());
 }
+function handleModeKeydown(event: KeyboardEvent): void {
+  if (!["ArrowLeft", "ArrowRight", "Home", "End"].includes(event.key)) return;
+  event.preventDefault();
+  setMode(
+    event.key === "Home"
+      ? "controlled"
+      : event.key === "End"
+        ? "anonymous"
+        : state.mode === "controlled"
+          ? "anonymous"
+          : "controlled"
+  );
+}
 function hideRecommendations(): void {
   analyzedOptions.value = [];
 }
@@ -133,6 +146,8 @@ function toggleQuickOption(reply: string): void {
 function undo(): void {
   state.turns.pop();
   state.selectedQuickOptions = [];
+  optionsError.value = "";
+  resultError.value = "";
   hideRecommendations();
 }
 function resetGame(skipConfirmation = false): void {
@@ -333,6 +348,11 @@ onMounted(() => {
       </header>
 
       <section class="progress-panel" aria-label="Прогресс пьесы">
+        <p class="sr-only" role="status" aria-live="polite">
+          Восторг зала: {{ calculated.audience }} из {{ engine.targetScore }}. Выполнено реплик:
+          {{ state.turns.length }}
+          из {{ engine.totalTurns }}.
+        </p>
         <div class="score-main" title="Восторг зала">
           <span class="score-number">{{ calculated.audience }}</span
           ><span class="score-target">/ {{ engine.targetScore }}</span>
@@ -342,7 +362,7 @@ onMounted(() => {
             <span>Восторг зала</span
             ><strong>{{ finished ? "Пьеса завершена" : `Реплика ${currentTurn} из ${engine.totalTurns}` }}</strong>
           </div>
-          <ol class="turn-track" aria-label="Выполненные реплики">
+          <ol class="turn-track" aria-hidden="true">
             <li
               v-for="index in engine.totalTurns"
               :key="index"
@@ -401,8 +421,12 @@ onMounted(() => {
               :class="{ 'is-active': state.mode === 'controlled' }"
               type="button"
               role="tab"
+              id="controlledModeTab"
+              aria-controls="controlledModePanel"
               :aria-selected="state.mode === 'controlled'"
+              :tabindex="state.mode === 'controlled' ? 0 : -1"
               @click="setMode('controlled')"
+              @keydown="handleModeKeydown"
             >
               Вижу 3 варианта
             </button>
@@ -411,8 +435,12 @@ onMounted(() => {
               :class="{ 'is-active': state.mode === 'anonymous' }"
               type="button"
               role="tab"
+              id="anonymousModeTab"
+              aria-controls="anonymousModePanel"
               :aria-selected="state.mode === 'anonymous'"
+              :tabindex="state.mode === 'anonymous' ? 0 : -1"
               @click="setMode('anonymous')"
+              @keydown="handleModeKeydown"
             >
               Вижу только выбор
             </button>
@@ -436,7 +464,13 @@ onMounted(() => {
             </p>
           </section>
 
-          <div v-if="state.mode === 'controlled'" class="mode-content is-active" role="tabpanel">
+          <div
+            v-if="state.mode === 'controlled'"
+            id="controlledModePanel"
+            class="mode-content is-active"
+            role="tabpanel"
+            aria-labelledby="controlledModeTab"
+          >
             <template v-if="config.quickChoice">
               <div class="quick-heading">
                 <span class="field-label">Выберите 3 варианта из игры</span
@@ -449,6 +483,8 @@ onMounted(() => {
                   class="quick-option"
                   :class="{ 'is-selected': state.selectedQuickOptions.includes(reply), 'is-ideal': idealReplies.some((item) => engine.replySignature(item.reply) === engine.replySignature(reply)) }"
                   type="button"
+                  :aria-label="`Реплика ${reply}`"
+                  :aria-pressed="state.selectedQuickOptions.includes(reply)"
                   :disabled="finished"
                   @click="toggleQuickOption(reply)"
                 >
@@ -460,11 +496,16 @@ onMounted(() => {
                 <summary>Или ввести строкой</summary>
                 <div class="input-row">
                   <input
+                    id="optionsInput"
                     ref="optionsElement"
                     :value="optionsInput"
                     class="reply-input"
                     :class="{ 'is-invalid': optionsError }"
                     type="text"
+                    maxlength="8"
+                    aria-label="Введите 3 варианта из игры"
+                    :aria-invalid="Boolean(optionsError)"
+                    aria-describedby="optionsError"
                     autocomplete="off"
                     spellcheck="false"
                     placeholder="СС СК СЗ"
@@ -488,6 +529,8 @@ onMounted(() => {
                   :class="{ 'is-invalid': optionsError }"
                   type="text"
                   maxlength="8"
+                  :aria-invalid="Boolean(optionsError)"
+                  aria-describedby="optionsError"
                   autocomplete="off"
                   spellcheck="false"
                   placeholder="СС СК СЗ"
@@ -500,7 +543,7 @@ onMounted(() => {
               </div>
               <p class="field-help">Три разные реплики через пробел. С — синий, З — зелёный, К — красный.</p>
             </template>
-            <p class="error-message" role="alert">{{ optionsError }}</p>
+            <p id="optionsError" class="error-message" role="alert">{{ optionsError }}</p>
 
             <div v-if="analyzedOptions.length" class="recommendation is-visible" aria-live="polite">
               <div class="recommendation-head">
@@ -534,7 +577,13 @@ onMounted(() => {
             </div>
           </div>
 
-          <div v-else class="mode-content is-active" role="tabpanel">
+          <div
+            v-else
+            id="anonymousModePanel"
+            class="mode-content is-active"
+            role="tabpanel"
+            aria-labelledby="anonymousModeTab"
+          >
             <label class="field-label" for="resultInput">Какая реплика была выбрана?</label>
             <div class="input-row">
               <input
@@ -545,6 +594,8 @@ onMounted(() => {
                 :class="{ 'is-invalid': resultError }"
                 type="text"
                 maxlength="2"
+                :aria-invalid="Boolean(resultError)"
+                aria-describedby="resultError"
                 autocomplete="off"
                 spellcheck="false"
                 placeholder="КЗ"
@@ -556,7 +607,7 @@ onMounted(() => {
               </button>
             </div>
             <p class="field-help">Введите выбранную реплику, например КК или КЗ.</p>
-            <p class="error-message" role="alert">{{ resultError }}</p>
+            <p id="resultError" class="error-message" role="alert">{{ resultError }}</p>
           </div>
 
           <div

@@ -21,12 +21,15 @@
     "check": "biome check .",
     "check:write": "biome check --write .",
     "typecheck": "pnpm --filter @airin-play/v1 typecheck && pnpm --filter @airin-play/v2 typecheck",
-    "test:unit": "vitest run --pool=threads --maxWorkers=1",
-    "test": "pnpm check && pnpm typecheck && pnpm test:unit && pnpm build"
+    "test:unit": "vitest run tests/core --pool=threads --maxWorkers=1",
+    "test:e2e": "playwright test",
+    "test:e2e:build": "pnpm build && pnpm test:e2e",
+    "test": "pnpm check && pnpm typecheck && pnpm test:unit && pnpm build && pnpm test:e2e"
   },
   "devDependencies": {
     "@airin-play/core": "workspace:*",
     "@biomejs/biome": "catalog:",
+    "@playwright/test": "^1.62.1",
     "typescript": "catalog:",
     "vitest": "catalog:"
   }
