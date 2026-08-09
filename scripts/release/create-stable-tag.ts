@@ -59,7 +59,7 @@ if (latestStable !== previousTag) {
       git.commit({
         author: 'github-actions[bot] <41898282+github-actions[bot]@users.noreply.github.com>',
         subject: `chore(release): prepare ${plan.release}`,
-        body: 'Release-Notes: skip',
+        body: '[skip ci]\n\nRelease-Notes: skip',
       });
       releaseSha = git.resolve('HEAD');
       git.pushBranch('main');

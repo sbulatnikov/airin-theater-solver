@@ -44,8 +44,8 @@
 - `RELEASE_NOTES.md` генерируется pipeline для текущего диапазона между стабильными тегами.
 
 Для каждого релизного коммита генератор использует явный `#PR` или проверенную GitHub association и добавляет ссылки
-на commit, PR и contributor. Технический release-коммит содержит `Release-Notes: skip` и не попадает в пользовательский
-Change Log.
+на commit, PR и contributor. Технический release-коммит содержит `[skip ci]` и `Release-Notes: skip`: он не запускает
+повторный pipeline и не попадает в пользовательский Change Log.
 
 ## Pipeline и Rulesets
 

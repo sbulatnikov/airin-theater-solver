@@ -29,7 +29,8 @@ Workflow `Release main` рассматривает весь диапазон о�
 3. `hotfix/*` без других продуктовых веток выбирает следующий patch; остальные продуктовые ветки — следующий
    функциональный номер.
 4. Если версия ещё не подготовлена, GitHub Actions датирует `Unreleased`, обновляет `package.json` и README и создаёт
-   линейный commit `chore(release): prepare <version>` с trailer `Release-Notes: skip`.
+   линейный commit `chore(release): prepare <version>` с `[skip ci]` и trailer `Release-Notes: skip`. Skip-директива
+   не создаёт второй workflow run от технического push.
 5. Тег ставится на release-коммит, после чего тот же run собирает GitHub Release и публикует Pages.
 
 Ruleset разрешает прямое обновление `main` только отдельному release deploy key. Его закрытая часть хранится в Actions
