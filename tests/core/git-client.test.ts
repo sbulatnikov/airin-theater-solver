@@ -117,4 +117,18 @@ describe('GitClientFactory', () => {
       ['https://github.com/owner/repository.git', 'refs/tags/actions'],
     ]);
   });
+
+  it('uses origin without token authentication for the release deploy key', () => {
+    const transport = new RecordingTransport();
+    const transports: GitTransportFactory = { create: vi.fn(() => transport) };
+    const actions = new GitClientFactory(
+      { GITHUB_ACTIONS: 'true', GITHUB_REPOSITORY: 'owner/repository', GITHUB_TOKEN: 'token' },
+      transports,
+    ).create({ useOriginForPush: true });
+
+    actions.pushBranch('main');
+
+    expect(transports.create).toHaveBeenCalledWith(undefined);
+    expect(transport.pushes).toEqual([['origin', 'HEAD:refs/heads/main']]);
+  });
 });

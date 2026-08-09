@@ -98,7 +98,7 @@ gh pr create --base main --template .github/PULL_REQUEST_TEMPLATE/feat.md
 Рабочие `feat/*`, `fix/*`, `hotfix/*` и Dependabot PR принимаются в `main` squash merge. После merge pipeline сам
 выбирает следующий functional или patch номер, создаёт технический release-коммит, тег, GitHub Release и deployment.
 Для заранее собранной группы по-прежнему доступен опциональный `rc/*` с rebase merge после Code Freeze. Пользовательский
-direct push в `main` запрещён; bypass имеет только официальный GitHub Actions App для release-коммита. Полная схема
+direct push в `main` запрещён; bypass имеет только отдельный release deploy key для технического коммита. Полная схема
 описана в [ветках](docs/branches.md) и [релизах](docs/releases.md).
 
 ## Передача `.patch` без pull request

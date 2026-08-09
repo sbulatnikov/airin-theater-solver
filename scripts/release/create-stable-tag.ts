@@ -19,7 +19,9 @@ const releaseKind = requestedKind as Exclude<ReleaseKind, 'none'>;
 const previousTag = requireEnvironment('PREVIOUS_TAG');
 const triggeringSha = requireEnvironment('GITHUB_SHA');
 const output = requireEnvironment('GITHUB_OUTPUT');
-const git = new GitClientFactory().create();
+// Checkout configures origin with the dedicated release deploy key. Keeping the
+// push transport on origin prevents GITHUB_TOKEN from becoming a broad bypass.
+const git = new GitClientFactory().create({ useOriginForPush: true });
 const github = new GithubClientFactory().create();
 
 async function skipSuperseded(reason: string): Promise<void> {
