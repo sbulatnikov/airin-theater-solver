@@ -5,6 +5,8 @@ import {
   pullRequestNumber,
   type ReleaseChange,
   type ReleaseCommit,
+  type ReleasePullRequestReader,
+  resolvePullRequest,
   skipsReleaseNotes,
 } from '../../scripts/release/release-notes.ts';
 
@@ -30,6 +32,17 @@ const change = (overrides: Partial<ReleaseChange> = {}): ReleaseChange => ({
   ...overrides,
 });
 
+const pullRequest = change().pullRequest;
+
+function githubReader(overrides: Partial<ReleasePullRequestReader> = {}): ReleasePullRequestReader {
+  return {
+    repository: 'sbulatnikov/airin-theater-solver',
+    getPullRequest: async () => pullRequest,
+    getPullRequestsForCommit: async () => [],
+    ...overrides,
+  };
+}
+
 describe('release notes', () => {
   it('parses machine-delimited git log records', () => {
     const log =
@@ -45,6 +58,47 @@ describe('release notes', () => {
     expect(pullRequestNumber(commit({ subject: 'fix: pipeline', body: 'Pull-Request: #17' }))).toBe(17);
     expect(pullRequestNumber(commit({ subject: 'fix: resolve #42', body: '' }))).toBeUndefined();
     expect(skipsReleaseNotes(commit({ body: 'Release-Notes: skip' }))).toBe(true);
+  });
+
+  it('resolves a PR explicitly referenced by the commit', async () => {
+    let requestedNumber = 0;
+    const resolved = await resolvePullRequest(
+      commit(),
+      githubReader({
+        getPullRequest: async (number) => {
+          requestedNumber = number;
+          return pullRequest;
+        },
+      }),
+    );
+
+    expect(requestedNumber).toBe(6);
+    expect(resolved).toBe(pullRequest);
+  });
+
+  it('falls back to the PR associated with a merge-preserved commit', async () => {
+    const resolved = await resolvePullRequest(
+      commit({ subject: 'wip(automation): harden clients' }),
+      githubReader({ getPullRequestsForCommit: async () => [pullRequest] }),
+    );
+
+    expect(resolved).toBe(pullRequest);
+  });
+
+  it('rejects missing and ambiguous PR associations', async () => {
+    const unresolved = commit({ subject: 'fix: missing association' });
+    await expect(resolvePullRequest(unresolved, githubReader())).rejects.toThrow('не связан с PR в main');
+    await expect(
+      resolvePullRequest(
+        unresolved,
+        githubReader({
+          getPullRequestsForCommit: async () => [
+            pullRequest,
+            { ...pullRequest, number: 7, html_url: 'https://github.com/example/repository/pull/7' },
+          ],
+        }),
+      ),
+    ).rejects.toThrow('связан с несколькими PR в main (#6, #7)');
   });
 
   it('creates a Change Log with commit, PR and contributor links', () => {

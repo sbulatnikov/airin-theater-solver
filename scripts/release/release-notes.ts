@@ -1,5 +1,5 @@
 import type { GitClient } from '../shared/git.ts';
-import type { GithubClient, GithubPullRequest } from '../shared/github.ts';
+import type { GithubPullRequest } from '../shared/github.ts';
 
 export interface ReleaseCommit {
   sha: string;
@@ -10,6 +10,12 @@ export interface ReleaseCommit {
 export interface ReleaseChange {
   commit: ReleaseCommit;
   pullRequest: GithubPullRequest;
+}
+
+export interface ReleasePullRequestReader {
+  readonly repository: string;
+  getPullRequest(number: number): Promise<GithubPullRequest>;
+  getPullRequestsForCommit(sha: string): Promise<GithubPullRequest[]>;
 }
 
 const recordSeparator = '\u001e';
@@ -47,6 +53,29 @@ export function pullRequestNumber(commit: ReleaseCommit): number | undefined {
   return undefined;
 }
 
+export async function resolvePullRequest(
+  commit: ReleaseCommit,
+  github: ReleasePullRequestReader,
+): Promise<GithubPullRequest> {
+  const explicitNumber = pullRequestNumber(commit);
+  if (explicitNumber) return github.getPullRequest(explicitNumber);
+
+  const associated = (await github.getPullRequestsForCommit(commit.sha)).filter(
+    (pullRequest) => pullRequest.base.ref === 'main',
+  );
+  if (associated.length === 1) return associated[0];
+  if (associated.length > 1) {
+    const numbers = associated.map(({ number }) => `#${number}`).join(', ');
+    throw new Error(
+      `Релизный commit ${commit.sha.slice(0, 7)} связан с несколькими PR в main (${numbers}). Добавьте явный trailer "Source-PR: #123".`,
+    );
+  }
+
+  throw new Error(
+    `Релизный commit ${commit.sha.slice(0, 7)} не связан с PR в main. Добавьте "(#123)", trailer "Source-PR: #123" или "Release-Notes: skip".`,
+  );
+}
+
 export function formatReleaseNotes(changes: ReleaseChange[], repository: string): string {
   if (!/^[^/\s]+\/[^/\s]+$/.test(repository)) throw new Error(`Некорректный GitHub repository: ${repository}.`);
   if (changes.length === 0) throw new Error('Между стабильными тегами нет публикуемых изменений.');
@@ -62,21 +91,18 @@ export function formatReleaseNotes(changes: ReleaseChange[], repository: string)
 export async function generateReleaseNotes(
   previousTag: string,
   target: string,
-  github: GithubClient,
+  github: ReleasePullRequestReader,
   git: GitClient,
 ): Promise<string> {
   const output = git.log(`${previousTag}..${target}`, releaseLogFormat, true);
   const commits = parseReleaseLog(output).filter((commit) => !skipsReleaseNotes(commit));
   const changes = await Promise.all(
-    commits.map(async (commit): Promise<ReleaseChange> => {
-      const number = pullRequestNumber(commit);
-      if (!number) {
-        throw new Error(
-          `Релизный commit ${commit.sha.slice(0, 7)} не содержит ссылку на PR. Добавьте "(#123)" или trailer "Release-Notes: skip".`,
-        );
-      }
-      return { commit, pullRequest: await github.getPullRequest(number) };
-    }),
+    commits.map(
+      async (commit): Promise<ReleaseChange> => ({
+        commit,
+        pullRequest: await resolvePullRequest(commit, github),
+      }),
+    ),
   );
   return formatReleaseNotes(changes, github.repository);
 }

@@ -35,6 +35,9 @@
             "context": "Unit tests"
           },
           {
+            "context": "Release notes"
+          },
+          {
             "context": "Build"
           },
           {
