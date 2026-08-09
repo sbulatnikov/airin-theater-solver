@@ -2,9 +2,11 @@ import { describe, expect, it } from "vitest";
 import {
   nextFeatureRelease,
   nextHotfixRelease,
+  nextMainRelease,
   packageVersionFor,
   parseCandidateTag,
-  parseStableRelease
+  parseStableRelease,
+  stableReleaseForPackageVersion
 } from "../../scripts/release-version.mjs";
 
 describe("repository release versions", () => {
@@ -21,6 +23,20 @@ describe("repository release versions", () => {
   it("maps patchless CalVer to a valid package version", () => {
     expect(packageVersionFor("2026.2")).toBe("2026.2.0");
     expect(packageVersionFor("2026.2.1")).toBe("2026.2.1");
+    expect(stableReleaseForPackageVersion("2026.2.0")).toBe("2026.2");
+    expect(stableReleaseForPackageVersion("2026.2.1")).toBe("2026.2.1");
+  });
+
+  it("allows main to publish only the next feature or hotfix release", () => {
+    expect(nextMainRelease("2026.1", "2026.2.0")).toBe("2026.2");
+    expect(nextMainRelease("2026.1", "2026.1.1")).toBe("2026.1.1");
+    expect(nextMainRelease("2026.1.4", "2026.2.0")).toBe("2026.2");
+    expect(nextMainRelease("2026.1.4", "2026.1.5")).toBe("2026.1.5");
+  });
+
+  it("rejects a main update without a release bump", () => {
+    expect(() => nextMainRelease("2026.1", "2026.1.0")).toThrow();
+    expect(() => nextMainRelease("2026.1.2", "2026.1.2")).toThrow();
   });
 
   it("parses candidate tags without treating them as stable releases", () => {

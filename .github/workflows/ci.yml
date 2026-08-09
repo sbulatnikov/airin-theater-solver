@@ -1,24 +1,27 @@
-name: Build and deploy GitHub Pages
+name: CI
 
 on:
   push:
     branches:
-      - main
+      - "dependabot/**"
+      - "feat/**"
+      - "fix/**"
       - "rc/**"
+      - "hotfix/**"
   pull_request:
     branches: [main]
-  workflow_dispatch:
 
 permissions: {}
 
 concurrency:
-  group: pages-${{ github.ref }}
+  group: ci-${{ github.event_name == 'pull_request' && github.event.pull_request.head.sha || github.ref }}
   cancel-in-progress: true
 
 jobs:
-  build:
+  checks:
+    name: Checks
     runs-on: ubuntu-24.04
-    timeout-minutes: 15
+    timeout-minutes: 20
     permissions:
       contents: read
     steps:
@@ -39,46 +42,35 @@ jobs:
       - name: Install dependencies
         run: pnpm install --frozen-lockfile --ignore-scripts
 
+      - name: Lint and formatting
+        run: pnpm check
+
+      - name: Type checking
+        run: pnpm typecheck
+
+      - name: Unit tests
+        run: pnpm test:unit
+
+      - name: Production build checks
+        run: pnpm build
+
       - name: Install Playwright Chromium
         run: pnpm exec playwright install --with-deps chromium
 
-      - name: Test and build
-        run: pnpm test
-
-      - name: Upload Pages artifact
-        if: github.ref == 'refs/heads/main' && github.event_name != 'pull_request'
-        uses: actions/upload-pages-artifact@fc324d3547104276b827a68afc52ff2a11cc49c9 # v5.0.0
-        with:
-          path: ./dist
-
-  deploy:
-    if: github.ref == 'refs/heads/main' && github.event_name != 'pull_request'
-    environment:
-      name: github-pages
-      url: ${{ steps.deployment.outputs.page_url }}
-    runs-on: ubuntu-24.04
-    timeout-minutes: 5
-    needs: build
-    permissions:
-      pages: write
-      id-token: write
-    steps:
-      - name: Deploy to GitHub Pages
-        id: deployment
-        uses: actions/deploy-pages@cd2ce8fcbc39b97be8ca5fce6e763baed58fa128 # v5.0.0
+      - name: End-to-end tests
+        run: pnpm test:e2e
 
   freeze:
+    name: Code Freeze
     if: github.event_name == 'push' && startsWith(github.ref, 'refs/heads/rc/')
+    needs: checks
     environment:
       name: release-freeze
     runs-on: ubuntu-24.04
     timeout-minutes: 5
-    needs: build
     permissions:
       contents: write
       pull-requests: read
-    outputs:
-      release_tag: ${{ steps.candidate.outputs.release_tag }}
     steps:
       - name: Checkout candidate
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
@@ -103,21 +95,29 @@ jobs:
             echo "Invalid RC branch: $RC_BRANCH" >&2
             exit 1
           fi
+
           base_release="${BASH_REMATCH[1]}"
+          latest_stable="$(git tag --list '20*' --sort=-version:refname | grep -E '^20[0-9]{2}\.[1-9][0-9]*(\.[1-9][0-9]*)?$' | head -1)"
+          if [[ "$base_release" != "$latest_stable" ]]; then
+            echo "RC is based on $base_release, but latest stable is $latest_stable." >&2
+            exit 1
+          fi
+
           node scripts/verify-release-tag.mjs "$candidate"
-          git rev-parse --verify "refs/tags/${base_release}^{commit}" >/dev/null
           git merge-base --is-ancestor "$base_release" "$GITHUB_SHA"
           if git rev-parse --verify --quiet "refs/tags/${candidate}" >/dev/null; then
             echo "Candidate tag already exists: $candidate" >&2
             exit 1
           fi
 
-          rc_prs="$(gh api --paginate "repos/${GITHUB_REPOSITORY}/pulls?state=open&base=main&per_page=100" \
-            --jq '[.[] | select(.head.ref | startswith("rc/")) | .head.ref] | unique | .[]')"
-          if [[ "$rc_prs" != "$RC_BRANCH" ]]; then
-            echo "Freeze requires exactly one open RC PR for $RC_BRANCH; found: ${rc_prs:-none}" >&2
+          mapfile -t rc_prs < <(gh api --paginate "repos/${GITHUB_REPOSITORY}/pulls?state=open&base=main&per_page=100" \
+            --jq '.[] | select(.head.ref | startswith("rc/")) | .head.ref' | sort -u)
+          if [[ "${#rc_prs[@]}" -ne 1 || "${rc_prs[0]}" != "$RC_BRANCH" ]]; then
+            printf 'Freeze requires one open RC PR for %s; found: %s\n' \
+              "$RC_BRANCH" "${rc_prs[*]:-none}" >&2
             exit 1
           fi
+
           echo "release_tag=$candidate" >> "$GITHUB_OUTPUT"
 
       - name: Lock candidate branch
@@ -130,6 +130,7 @@ jobs:
             echo "REPOSITORY_ADMIN_TOKEN is not configured in the release-freeze environment." >&2
             exit 1
           fi
+
           encoded_branch="${RC_BRANCH//\//%2F}"
           payload='{"required_status_checks":null,"enforce_admins":true,"required_pull_request_reviews":null,"restrictions":null,"required_linear_history":true,"allow_force_pushes":false,"allow_deletions":false,"block_creations":false,"required_conversation_resolution":true,"lock_branch":true,"allow_fork_syncing":false}'
           printf '%s' "$payload" | gh api --method PUT \
@@ -150,11 +151,3 @@ jobs:
           gh api --method POST "repos/${GITHUB_REPOSITORY}/git/refs" \
             -f ref="refs/tags/$RELEASE_TAG" \
             -f sha="$tag_object"
-
-  publish-candidate:
-    needs: freeze
-    permissions:
-      contents: write
-    uses: ./.github/workflows/release.yml
-    with:
-      release_tag: ${{ needs.freeze.outputs.release_tag }}

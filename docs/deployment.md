@@ -16,16 +16,20 @@ Vite отдельно собирает `apps/v1` и `apps/v2`. Плагин sing
 
 ## GitHub Pages
 
-Workflow `.github/workflows/pages.yml` запускается при push в `main` и вручную через `workflow_dispatch`.
+Workflow `.github/workflows/release.yml` запускается только после принятого pull request, когда обновился `main`.
 
 Этапы workflow:
 
-1. checkout репозитория;
-2. установка pnpm и Node.js 24;
-3. `pnpm install --frozen-lockfile --ignore-scripts`;
-4. `pnpm test`;
-5. загрузка `dist` как Pages artifact;
-6. публикация artifact в environment `github-pages`.
+1. определение версии из `package.json` и создание неизменяемого стабильного тега;
+2. checkout созданного тега, установка pnpm, Node.js 24 и зависимостей;
+3. production-сборка `dist`;
+4. упаковка того же `dist` в архив GitHub Release;
+5. публикация GitHub Release с `CHANGES.md` и SHA-256;
+6. загрузка `dist` как Pages artifact и его публикация в environment `github-pages`.
+
+Тесты не повторяются после merge: обязательный check `Checks` уже выполнил Biome, TypeScript, unit-тесты,
+production build и Playwright E2E на точном head commit pull request. Каждый merge в `main` обязан изменить общую
+версию: следующий функциональный релиз или следующий patch hotfix. Иначе release pipeline остановится до создания тега.
 
 После первого push откройте **Settings → Pages** и выберите **Source: GitHub Actions**.
 
