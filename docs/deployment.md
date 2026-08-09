@@ -6,11 +6,11 @@
 pnpm build
 ```
 
-Vite отдельно собирает `apps/v1` и `apps/v2`. Плагин single-file встраивает JavaScript и CSS внутрь HTML, после чего `scripts/assemble-dist.ts` формирует:
+Vite собирает `apps/v2`. Плагин single-file встраивает JavaScript и CSS внутрь HTML, после чего `scripts/assemble-dist.ts` формирует:
 
-- `dist/v1/index.html`;
 - `dist/v2/index.html`;
-- `dist/index.html` с переходом на v2.
+- `dist/index.html` с переходом на v2;
+- `dist/.nojekyll`.
 
 Каталог `dist` — воспроизводимый артефакт и не хранится в Git.
 
@@ -33,9 +33,8 @@ Playwright E2E jobs на точном head commit pull request. Каждый mer
 
 После первого push откройте **Settings → Pages** и выберите **Source: GitHub Actions**.
 
-Для репозитория, опубликованного по адресу `https://user.github.io/repository/`, версии будут доступны как:
+Для репозитория, опубликованного по адресу `https://user.github.io/repository/`, приложение доступно по адресу:
 
-- `https://user.github.io/repository/v1/`;
 - `https://user.github.io/repository/v2/`.
 
 Относительные пути и `base: "./"` позволяют тем же файлам работать как в подпапке GitHub Pages, так и локально через `file://`.

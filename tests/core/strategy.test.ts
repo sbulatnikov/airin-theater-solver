@@ -1,5 +1,3 @@
-import { isStrategySolverEngine } from '@airin-play/core/shared';
-import engineV1 from '@airin-play/core/v1';
 import engineV2 from '@airin-play/core/v2';
 import { describe, expect, it } from 'vitest';
 import { asTurns, engines } from './test-engines';
@@ -37,10 +35,6 @@ describe.each(engines)('%s: анализ доступных вариантов',
 });
 
 describe('@airin-play/core/v2: победная цепочка', () => {
-  it('отсутствует по пути v1', () => {
-    expect(isStrategySolverEngine(engineV1)).toBe(false);
-  });
-
   it('строит 16 допустимых ходов с нулём восторга на первом', () => {
     const route = engineV2.buildIdealChain([]);
     expect(route.steps).toHaveLength(16);

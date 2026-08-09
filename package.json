@@ -9,11 +9,10 @@
     "pnpm": ">=11 <12"
   },
   "scripts": {
-    "dev:v1": "pnpm --filter @airin-play/v1 dev",
+    "dev": "pnpm --filter @airin-play/v2 dev",
     "dev:v2": "pnpm --filter @airin-play/v2 dev",
-    "build:v1": "pnpm --filter @airin-play/v1 build",
     "build:v2": "pnpm --filter @airin-play/v2 build",
-    "build": "pnpm build:v1 && pnpm build:v2 && tsx scripts/assemble-dist.ts",
+    "build": "pnpm build:v2 && tsx scripts/assemble-dist.ts",
     "version:set": "tsx scripts/bump-version.ts",
     "release:set": "tsx scripts/set-release.ts",
     "release:prepare": "tsx scripts/prepare-release.ts",
@@ -25,7 +24,7 @@
     "check": "biome check .",
     "check:write": "biome check --write .",
     "typecheck:scripts": "tsc --noEmit -p tsconfig.scripts.json",
-    "typecheck": "pnpm typecheck:scripts && pnpm --filter @airin-play/v1 typecheck && pnpm --filter @airin-play/v2 typecheck",
+    "typecheck": "pnpm typecheck:scripts && pnpm --filter @airin-play/v2 typecheck",
     "test:unit": "vitest run tests/core --pool=threads --maxWorkers=1",
     "test:e2e": "playwright test",
     "test:e2e:build": "pnpm build && pnpm test:e2e",
