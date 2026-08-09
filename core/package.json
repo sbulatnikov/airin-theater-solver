@@ -5,7 +5,6 @@
   "type": "module",
   "exports": {
     "./shared": "./shared/index.ts",
-    "./v1": "./v1/engine.ts",
     "./v2": "./v2/engine.ts"
   }
 }
