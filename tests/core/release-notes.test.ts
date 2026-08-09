@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import {
   formatReleaseNotes,
+  includesReleaseNotes,
   parseReleaseLog,
   pullRequestNumber,
   type ReleaseChange,
@@ -106,5 +107,11 @@ describe('release notes', () => {
 
 - [\`1234567\`](https://github.com/sbulatnikov/airin-theater-solver/commit/1234567890abcdef) fix(ci): repair release pipeline ([#6](https://github.com/sbulatnikov/airin-theater-solver/pull/6)) — [@backend](https://github.com/backend)
 `);
+  });
+
+  it('keeps documentation and CI commits out of the user-facing Change Log', () => {
+    expect(includesReleaseNotes({ ...pullRequest, head: { ...pullRequest.head, ref: 'ci/release' } })).toBe(false);
+    expect(includesReleaseNotes({ ...pullRequest, head: { ...pullRequest.head, ref: 'docs/readme' } })).toBe(false);
+    expect(includesReleaseNotes({ ...pullRequest, head: { ...pullRequest.head, ref: 'feat/tutorial' } })).toBe(true);
   });
 });

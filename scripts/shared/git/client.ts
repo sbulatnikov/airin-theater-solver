@@ -102,6 +102,13 @@ export class GitClient {
     this.transport.push([this.pushRemote, `refs/tags/${tag}`]);
   }
 
+  pushBranch(branch: string): void {
+    if (!this.transport.succeeds(['check-ref-format', '--branch', branch])) {
+      throw new Error(`Некорректное имя Git-ветки: ${branch}.`);
+    }
+    this.transport.push([this.pushRemote, `HEAD:refs/heads/${branch}`]);
+  }
+
   isAncestor(ancestor: string, descendant: string): boolean {
     return this.transport.succeeds(['merge-base', '--is-ancestor', ancestor, descendant]);
   }
@@ -123,8 +130,20 @@ export class GitClient {
     return !this.transport.succeeds(['diff', '--cached', '--quiet']);
   }
 
+  stage(paths: readonly string[]): void {
+    if (paths.length === 0) throw new Error('Для git add не переданы файлы.');
+    this.transport.execute(['add', '--', ...paths]);
+  }
+
   commit({ author, subject, body }: GitCommitOptions): void {
-    this.transport.execute(['commit', `--author=${author}`, '--message', subject, '--message', body]);
+    this.transport.execute(['commit', `--author=${author}`, '--message', subject, '--message', body], {
+      env: this.tagger
+        ? {
+            GIT_COMMITTER_EMAIL: this.tagger.email,
+            GIT_COMMITTER_NAME: this.tagger.name,
+          }
+        : {},
+    });
   }
 
   log(range: string, format: string, reverse = false): string {

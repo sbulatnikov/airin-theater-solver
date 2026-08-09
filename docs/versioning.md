@@ -21,3 +21,7 @@ pnpm version:set 2.3.0
 1. добавьте пользовательское описание в `CHANGELOG.md` под `Unreleased`;
 2. выполните `pnpm test`;
 3. включите изменение версии в тот же commit, что и соответствующее изменение поведения.
+
+Календарную версию репозитория в рабочем `feat/*`, `fix/*` или `hotfix/*` PR вручную не меняйте. После merge pipeline
+выбирает следующий functional/patch номер, датирует `CHANGELOG.md / Unreleased` и синхронизирует корневые
+`package.json` и README. `pnpm release:prepare` остаётся ручной командой только для заранее собранного `rc/*`.

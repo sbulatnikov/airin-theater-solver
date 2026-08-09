@@ -20,16 +20,16 @@ Workflow `.github/workflows/release.yml` запускается только п�
 
 Этапы workflow:
 
-1. определение версии из `package.json` и создание неизменяемого стабильного тега;
-2. checkout созданного тега, установка pnpm, Node.js 24 и зависимостей;
-3. production-сборка `dist`;
-4. упаковка того же `dist` в архив GitHub Release;
-5. генерация текущего `RELEASE_NOTES.md` по PR/contributor и публикация GitHub Release с SHA-256;
-6. загрузка `dist` как Pages artifact и его публикация в environment `github-pages`.
+1. классификация всего невыпущенного диапазона от последнего стабильного тега;
+2. автоматический выбор functional/patch версии и, если требуется, защищённый release-коммит в `main`;
+3. создание неизменяемого стабильного тега на release-коммите;
+4. checkout созданного тега, установка pnpm, Node.js 24 и зависимостей;
+5. production-сборка и упаковка `dist` в архив GitHub Release;
+6. генерация `RELEASE_NOTES.md`, публикация GitHub Release с SHA-256 и deployment Pages.
 
-Тесты не повторяются после merge: Branch Rules уже потребовали успешные Biome, TypeScript, unit, production build и
-Playwright E2E jobs на точном head commit pull request. Каждый merge в `main` обязан изменить общую
-версию: следующий функциональный релиз или следующий patch hotfix. Иначе release pipeline остановится до создания тега.
+Тесты не повторяются после merge: Ruleset уже потребовал успешные Biome, TypeScript, unit, production build и
+Playwright E2E jobs на точном head commit Pull Request. Продуктовый PR не меняет календарную версию вручную: release
+workflow синхронизирует `package.json`, README и `CHANGELOG.md` атомарным bot-коммитом перед созданием тега.
 
 После первого push откройте **Settings → Pages** и выберите **Source: GitHub Actions**.
 
@@ -39,6 +39,8 @@ Playwright E2E jobs на точном head commit pull request. Каждый mer
 
 Относительные пути и `base: "./"` позволяют тем же файлам работать как в подпапке GitHub Pages, так и локально через `file://`.
 
-Все сторонние Actions закреплены по полным commit SHA. Права выдаются отдельно: сборка получает только чтение
-репозитория, а `pages: write` и OIDC-токен доступны только короткому заданию публикации. Dependabot еженедельно
-предлагает обновления npm-зависимостей и закреплённых Actions.
+Все сторонние Actions закреплены по полным commit SHA. Права выдаются отдельно: job подготовки релиза получает только
+`contents: read` и временно подключает отдельный write deploy key из secret `RELEASE_DEPLOY_KEY`; `pages: write` и
+OIDC-токен доступны только короткому заданию публикации. В ruleset этот ключ является единственным bypass-актором и
+нужен только для линейного release-коммита. Обычный direct push в `main` остаётся запрещён. Dependabot еженедельно
+предлагает обновления зависимостей и закреплённых Actions.

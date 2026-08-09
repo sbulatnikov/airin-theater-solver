@@ -6,6 +6,7 @@ import type { GitTransport } from './transport.ts';
 export interface GitClientOptions {
   repository?: string;
   token?: string;
+  useOriginForPush?: boolean;
 }
 
 export interface GitTransportFactory {
@@ -32,9 +33,11 @@ export class GitClientFactory {
       throw new Error('Публикация Git из Github Actions требует GITHUB_TOKEN и GITHUB_REPOSITORY.');
     }
 
-    const transport = this.transports.create(token);
+    const transport = this.transports.create(options.useOriginForPush ? undefined : token);
     const pushRemote =
-      token && repository ? `https://github.com/${validateGithubRepository(repository)}.git` : 'origin';
+      !options.useOriginForPush && token && repository
+        ? `https://github.com/${validateGithubRepository(repository)}.git`
+        : 'origin';
     const tagger = actions
       ? {
           name: 'github-actions[bot]',

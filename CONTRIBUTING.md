@@ -62,13 +62,15 @@ Biome должен завершаться без замечаний. Для ло
 
 ## Версии
 
-Не повышайте версию для чернового патча без договорённости с владельцем. Если bump входит в задачу, используйте:
+SemVer приложения v2 повышайте только когда меняется его публичное поведение. Для этого используйте:
 
 ```bash
 pnpm version:set 2.3.0
 ```
 
 Правила выбора MAJOR/MINOR/PATCH описаны в `docs/versioning.md`.
+
+Календарную версию репозитория в обычном PR не меняйте: после merge её автоматически назначает `Release main`.
 
 ## Pull request
 
@@ -93,11 +95,11 @@ gh pr create --base main --template .github/PULL_REQUEST_TEMPLATE/feat.md
 
 Сохраняйте commits небольшими и осмысленными. Не переписывайте историю после начала review без необходимости.
 
-Рабочий pull request открывается в `main`, но approval не гарантирует ближайший релиз. Maintainer сам выбирает PR и
-добавляет его в единственную активную RC-ветку командой `pnpm rc:add <PR>`; один исходный PR становится одним
-squash-коммитом с сохранёнными номером и contributor. RC PR вливается через rebase merge после Code Freeze. Только
-`hotfix/*` может пройти отдельным squash PR непосредственно в `main` и повысить исключительно patch. Прямой push в
-`main` запрещён. Полная схема описана в [ветках](docs/branches.md) и [релизах](docs/releases.md).
+Рабочие `feat/*`, `fix/*`, `hotfix/*` и Dependabot PR принимаются в `main` squash merge. После merge pipeline сам
+выбирает следующий functional или patch номер, создаёт технический release-коммит, тег, GitHub Release и deployment.
+Для заранее собранной группы по-прежнему доступен опциональный `rc/*` с rebase merge после Code Freeze. Пользовательский
+direct push в `main` запрещён; bypass имеет только отдельный release deploy key для технического коммита. Полная схема
+описана в [ветках](docs/branches.md) и [релизах](docs/releases.md).
 
 ## Передача `.patch` без pull request
 
