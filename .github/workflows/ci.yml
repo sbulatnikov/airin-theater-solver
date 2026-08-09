@@ -87,8 +87,18 @@ jobs:
           persist-credentials: false
       - name: Restore workspace
         uses: ./.github/actions/setup-workspace
-      - name: Vitest
-        run: pnpm test:unit
+      - name: Vitest coverage threshold and README sync
+        run: pnpm coverage:check
+      - name: Publish coverage summary
+        run: pnpm coverage:summary
+      - name: Upload coverage report
+        if: ${{ always() }}
+        uses: actions/upload-artifact@b7c566a772e6b6bfb58ed0dc250532a479d7789f # v6.0.0
+        with:
+          name: unit-coverage
+          path: coverage/
+          if-no-files-found: warn
+          retention-days: 14
 
   release-notes:
     name: Release notes

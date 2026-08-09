@@ -10,10 +10,14 @@ import {
 } from './release-version.ts';
 
 export async function verifyReleaseTag(tag: string): Promise<string> {
-  const candidate = parseCandidateTag(tag);
   const root = resolve(import.meta.dirname, '..');
   const manifest = JSON.parse(await readFile(resolve(root, 'package.json'), 'utf8'));
-  const manifestRelease = stableReleaseForPackageVersion(manifest.version);
+  return releaseForTag(tag, manifest.version);
+}
+
+export function releaseForTag(tag: string, packageVersion: string): string {
+  const candidate = parseCandidateTag(tag);
+  const manifestRelease = stableReleaseForPackageVersion(packageVersion);
   let release = manifestRelease;
 
   try {
@@ -33,8 +37,8 @@ export async function verifyReleaseTag(tag: string): Promise<string> {
   }
 
   const expectedPackageVersion = packageVersionFor(release);
-  if (manifest.version !== expectedPackageVersion) {
-    throw new Error(`Тег ${tag} должен выпускать ${release}, но package version равен ${manifest.version}.`);
+  if (packageVersion !== expectedPackageVersion) {
+    throw new Error(`Тег ${tag} должен выпускать ${release}, но package version равен ${packageVersion}.`);
   }
 
   return release;
