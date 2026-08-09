@@ -54,7 +54,7 @@ describe('GitClient', () => {
     git.commit({
       author: 'release-bot <release@example.com>',
       subject: 'chore(release): prepare 2026.2',
-      body: 'Release-Notes: skip',
+      body: '[skip ci]\n\nRelease-Notes: skip',
     });
     git.pushBranch('main');
 
@@ -66,7 +66,7 @@ describe('GitClient', () => {
         '--message',
         'chore(release): prepare 2026.2',
         '--message',
-        'Release-Notes: skip',
+        '[skip ci]\n\nRelease-Notes: skip',
       ],
       ['check-ref-format', '--branch', 'main'],
     ]);
