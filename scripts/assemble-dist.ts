@@ -31,24 +31,11 @@ function applyContentSecurityPolicy(html: string, variant: string): string {
   return html.replace('__AIRIN_CSP__', policy);
 }
 
-const v1Html = applyContentSecurityPolicy(await readFile(resolve(root, '.build/v1/index.html'), 'utf8'), 'v1');
 const v2Html = applyContentSecurityPolicy(await readFile(resolve(root, '.build/v2/index.html'), 'utf8'), 'v2');
-const v1Version = JSON.parse(await readFile(resolve(root, 'apps/v1/package.json'), 'utf8')).version;
 const v2Version = JSON.parse(await readFile(resolve(root, 'apps/v2/package.json'), 'utf8')).version;
 
-const builds = [
-  { name: 'v1', html: v1Html, version: v1Version, marker: 'classic', foreignMarker: 'strategy-tree' },
-  { name: 'v2', html: v2Html, version: v2Version, marker: 'strategy-tree', foreignMarker: 'classic' },
-];
-
-for (const build of builds) {
-  if (
-    !build.html.includes(build.version) ||
-    !build.html.includes(build.marker) ||
-    build.html.includes(build.foreignMarker)
-  ) {
-    throw new Error(`Сборка ${build.name} содержит код или метаданные другого поколения.`);
-  }
+if (!v2Html.includes(v2Version)) {
+  throw new Error('Сборка v2 не содержит версию приложения.');
 }
 
 function verifySingleFile(html: string, variant: string): void {
@@ -81,13 +68,10 @@ function verifySingleFile(html: string, variant: string): void {
     throw new Error(`Сборка ${variant} не содержит полную настройку цветовой темы.`);
   }
 }
-verifySingleFile(v1Html, 'v1');
 verifySingleFile(v2Html, 'v2');
 
 await rm(dist, { recursive: true, force: true });
-await mkdir(resolve(dist, 'v1'), { recursive: true });
 await mkdir(resolve(dist, 'v2'), { recursive: true });
-await writeFile(resolve(dist, 'v1/index.html'), v1Html, 'utf8');
 await writeFile(resolve(dist, 'v2/index.html'), v2Html, 'utf8');
 await writeFile(resolve(dist, '.nojekyll'), '', 'utf8');
 await writeFile(
@@ -108,4 +92,4 @@ await writeFile(
   'utf8',
 );
 
-console.log('Собрано: dist/v1/index.html и dist/v2/index.html');
+console.log('Собрано: dist/index.html и dist/v2/index.html');
