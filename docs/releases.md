@@ -59,9 +59,10 @@ Hotfix PR направляется в `main`, проходит approval и вс�
 - `CHANGELOG.md` редактируется в рабочих ветках и содержит краткую пользовательскую историю всех стабильных версий;
 - `RELEASE_NOTES.md` генерируется pipeline только для текущего релиза из commit range между стабильными тегами.
 
-Для каждого релизного коммита генератор извлекает `#PR`, запрашивает через GitHub API ссылку и contributor и формирует
-строку со ссылками на commit, PR и профиль автора. Коммит без `#PR` или явного `Release-Notes: skip` останавливает
-pipeline до создания стабильного тега.
+Для каждого релизного коммита генератор сначала извлекает явный `#PR`, а при его отсутствии использует проверенную
+GitHub association коммита с единственным PR в `main`. После этого он формирует строку со ссылками на commit, PR и
+профиль автора. Коммит без PR, с неоднозначной association или без явного `Release-Notes: skip` останавливает pipeline.
+Для `hotfix/*` и `rc/*` та же проверка выполняется обязательной job `Release notes` ещё до merge.
 
 GitHub Release получает `RELEASE_NOTES.md` как body. В его assets публикуются production archive, `RELEASE_NOTES.md`,
 полный `CHANGELOG.md` и `SHA256SUMS.txt`.
@@ -70,11 +71,13 @@ GitHub Release получает `RELEASE_NOTES.md` как body. В его assets
 
 `.github/workflows/ci.yml` запускается для `dependabot/*`, `feat/*`, `fix/*`, `rc/*` и `hotfix/*`. Job установки
 зависимостей наполняет pnpm cache, после чего параллельно выполняются напрямую обязательные `Lint`, `Typecheck`,
-`Unit tests`, `Build` и `E2E tests`. Агрегирующей job нет.
+`Unit tests`, `Build` и `E2E tests`. Для release-bearing веток параллельно проверяется будущий Change Log.
+Агрегирующей job нет.
 
 ## Правила GitHub
 
-- `main` принимает изменения только через PR с approval, разрешёнными review threads, пятью checks и линейной историей;
+- `main` принимает изменения только через PR, с разрешёнными review threads, шестью checks и линейной историей;
+- пока у репозитория один maintainer, чужой approval не обязателен; после появления второго maintainer его следует включить;
 - force push и удаление `main` запрещены;
 - существующие tags нельзя переносить или удалять;
 - merge commits отключены; рабочие и hotfix PR используют squash, RC PR — rebase merge;
