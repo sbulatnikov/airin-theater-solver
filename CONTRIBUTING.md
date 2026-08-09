@@ -30,8 +30,8 @@ git pull --ff-only
 git switch -c fix/short-description
 ```
 
-Допустимые пользовательские префиксы: `fix/`, `feat/` и `hotfix/`. Ветки `dependabot/*` создаются ботом,
-а `rc/*` — только maintainer при подготовке релиза.
+Допустимые пользовательские префиксы: `fix/`, `feat/`, `hotfix/`, `docs/` и `ci/`. Ветки `dependabot/*` создаются
+ботом, а `rc/*` — только maintainer при подготовке релиза.
 
 ## Границы версий
 
@@ -73,6 +73,16 @@ pnpm version:set v2 2.3.0
 Правила выбора MAJOR/MINOR/PATCH описаны в `docs/versioning.md`.
 
 ## Pull request
+
+Выберите шаблон, соответствующий префиксу ветки: `feat.md`, `fix.md`, `hotfix.md`, `ci.md` или `rc.md`. GitHub не
+выбирает один из нескольких PR-шаблонов по имени ветки автоматически, поэтому при работе через CLI передайте файл явно:
+
+```bash
+gh pr create --base main --template .github/PULL_REQUEST_TEMPLATE/feat.md
+```
+
+В Web UI шаблон можно выбрать параметром `template`, например `?template=feat.md`. Dependabot формирует описание PR
+самостоятельно. Для `docs/*` отдельный шаблон пока не используется.
 
 В описании укажите:
 

@@ -1,25 +1,19 @@
 name: CI
 
 on:
-  push:
-    branches:
-      - "dependabot/**"
-      - "feat/**"
-      - "fix/**"
-      - "rc/**"
-      - "hotfix/**"
   pull_request:
     branches: [main]
 
 permissions: {}
 
 concurrency:
-  group: ci-${{ github.event_name == 'pull_request' && github.event.pull_request.head.sha || github.ref }}
+  group: ci-${{ github.event.pull_request.head.repo.full_name }}-${{ github.event.pull_request.head.ref }}
   cancel-in-progress: true
 
 jobs:
   dependencies:
     name: Install dependencies
+    if: ${{ !startsWith(github.head_ref, 'docs/') }}
     runs-on: ubuntu-24.04
     timeout-minutes: 10
     permissions:
@@ -38,6 +32,7 @@ jobs:
   lint:
     name: Lint
     needs: dependencies
+    if: ${{ always() && (startsWith(github.head_ref, 'docs/') || needs.dependencies.result == 'success') }}
     runs-on: ubuntu-24.04
     timeout-minutes: 10
     permissions:
@@ -46,10 +41,19 @@ jobs:
       - name: Checkout
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
+          fetch-depth: 0
           persist-credentials: false
+      - name: Validate documentation scope
+        if: ${{ startsWith(github.head_ref, 'docs/') }}
+        run: bash scripts/ci/validate-docs-pr.sh
+        env:
+          BASE_SHA: ${{ github.event.pull_request.base.sha }}
+          HEAD_SHA: ${{ github.event.pull_request.head.sha }}
       - name: Restore workspace
+        if: ${{ !startsWith(github.head_ref, 'docs/') }}
         uses: ./.github/actions/setup-workspace
       - name: Biome lint and formatting
+        if: ${{ !startsWith(github.head_ref, 'docs/') }}
         run: pnpm check
 
   typecheck:

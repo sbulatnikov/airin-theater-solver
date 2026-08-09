@@ -4,6 +4,8 @@ set -euo pipefail
 : "${RELEASE_TAG:?RELEASE_TAG is required}"
 : "${GH_TOKEN:?GH_TOKEN is required}"
 
+unset GH_DEBUG
+
 if gh release view "$RELEASE_TAG" >/dev/null 2>&1; then
   gh release upload "$RELEASE_TAG" release-artifacts/* --clobber
   gh release edit "$RELEASE_TAG" \

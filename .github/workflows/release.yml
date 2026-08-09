@@ -11,8 +11,34 @@ concurrency:
   cancel-in-progress: false
 
 jobs:
+  classify:
+    name: Classify main update
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    permissions:
+      contents: read
+      pull-requests: read
+    outputs:
+      should_release: ${{ steps.classify.outputs.should_release }}
+    steps:
+      - name: Checkout main
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - name: Setup workspace
+        uses: ./.github/actions/setup-workspace
+        with:
+          offline: "false"
+      - name: Resolve source Pull Request
+        id: classify
+        run: pnpm exec tsx scripts/release/classify-main-update.ts
+        env:
+          GITHUB_TOKEN: ${{ github.token }}
+
   tag:
     name: Create stable tag
+    needs: classify
+    if: needs.classify.outputs.should_release == 'true'
     runs-on: ubuntu-24.04
     timeout-minutes: 10
     permissions:
@@ -48,8 +74,6 @@ jobs:
       contents: write
       pull-requests: read
     env:
-      GH_TOKEN: ${{ github.token }}
-      GITHUB_TOKEN: ${{ github.token }}
       PREVIOUS_TAG: ${{ needs.tag.outputs.previous_tag }}
       RELEASE_TAG: ${{ needs.tag.outputs.release_tag }}
     steps:
@@ -70,8 +94,12 @@ jobs:
 
       - name: Package release artifacts
         run: bash scripts/release/package-release.sh
+        env:
+          GITHUB_TOKEN: ${{ github.token }}
 
       - name: Publish GitHub release
+        env:
+          GH_TOKEN: ${{ github.token }}
         run: bash scripts/release/publish-release.sh
 
       - name: Upload Pages artifact

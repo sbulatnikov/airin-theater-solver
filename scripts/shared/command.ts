@@ -1,34 +1,42 @@
-import { spawnSync } from "node:child_process";
+import { spawnSync } from 'node:child_process';
+import { redactCredentials } from './safe-environment.ts';
 
-interface CommandOptions {
+export interface CommandOptions {
   env?: NodeJS.ProcessEnv;
   input?: string;
 }
 
-function execute(command: string, args: string[], options: CommandOptions = {}) {
-  return spawnSync(command, args, {
-    encoding: "utf8",
-    env: options.env ?? process.env,
-    input: options.input,
-    stdio: [options.input === undefined ? "ignore" : "pipe", "pipe", "pipe"]
-  });
+export interface CommandExecutor {
+  run(command: string, args: string[], options?: CommandOptions): string;
+  succeeds(command: string, args: string[], options?: CommandOptions): boolean;
 }
 
-export function run(command: string, args: string[], options: CommandOptions = {}): string {
-  const result = execute(command, args, options);
-  if (result.error) throw result.error;
-  if (result.status !== 0) {
-    throw new Error(`${command} ${args.join(" ")} завершился с кодом ${result.status}: ${result.stderr.trim()}`);
+export class ProcessCommandExecutor implements CommandExecutor {
+  run(command: string, args: string[], options: CommandOptions = {}): string {
+    const result = this.execute(command, args, options);
+    const environment = options.env ?? process.env;
+    if (result.error) {
+      throw new Error(redactCredentials(`Не удалось запустить ${command}: ${result.error.message}`, environment));
+    }
+    if (result.status !== 0) {
+      const message = `${command} ${args.join(' ')} завершился с кодом ${result.status}: ${result.stderr.trim()}`;
+      throw new Error(redactCredentials(message, environment));
+    }
+    return result.stdout.trim();
   }
-  return result.stdout.trim();
-}
 
-export function succeeds(command: string, args: string[]): boolean {
-  return execute(command, args).status === 0;
-}
+  succeeds(command: string, args: string[], options: CommandOptions = {}): boolean {
+    return this.execute(command, args, options).status === 0;
+  }
 
-export function gh(args: string[], token: string, input?: string): string {
-  return run("gh", args, { env: { ...process.env, GH_TOKEN: token }, input });
+  private execute(command: string, args: string[], options: CommandOptions) {
+    return spawnSync(command, args, {
+      encoding: 'utf8',
+      env: options.env ?? process.env,
+      input: options.input,
+      stdio: [options.input === undefined ? 'ignore' : 'pipe', 'pipe', 'pipe'],
+    });
+  }
 }
 
 export function requireEnvironment(name: string): string {

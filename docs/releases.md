@@ -30,7 +30,7 @@ Merge документационного PR из `docs/*` или инфраст�
 ## Code Freeze
 
 Отдельный workflow `.github/workflows/rc.yml` (`Prepare Release Candidate`) появляется только после успешного
-push-pipeline `rc/*`. Job
+PR-pipeline ветки `rc/*`. Job
 `Code Freeze` ожидает ручного approval в Environment `release-freeze`, затем:
 
 1. проверяет имя ветки, будущую версию, происхождение от стабильного тега и единственный открытый RC PR;

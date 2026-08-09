@@ -53,3 +53,25 @@ flowchart LR
 ## Сборка
 
 Каждое приложение Vite собирает отдельно. `vite-plugin-singlefile` встраивает Vue runtime, JavaScript и CSS в один HTML. Затем `scripts/assemble-dist.ts` формирует структуру `dist/v1` и `dist/v2`.
+
+## Автоматизация Git и Github
+
+Release- и RC-скрипты работают с внешними инструментами через объектные фасады:
+
+```mermaid
+flowchart LR
+  COMMAND["CommandExecutor"] --> GITCLI["GitCliTransport"]
+  COMMAND --> GHCLI["GithubCliTransport"]
+  HTTP["Fetch API"] --> GHAPI["GithubApiTransport"]
+  GITCLI --> GIT["GitClient"]
+  GHCLI --> GH["GithubClient"]
+  GHAPI --> GH
+```
+
+`GitClient` инкапсулирует ветки, diff, squash-коммиты, теги и их публикацию. `GithubClient` предоставляет операции над
+Pull Requests и Branch Protection, не раскрывая REST paths или команды CLI вызывающим скриптам.
+
+Локально `GithubClientFactory` выбирает `GithubCliTransport` и использует системную сессию `gh auth`. В Github Actions
+та же фабрика выбирает `GithubApiTransport` с временным `GITHUB_TOKEN`. `GitClientFactory` публикует теги через Git;
+токен передаётся дочернему процессу временным HTTP-заголовком и не сохраняется в remote URL или checkout credentials.
+Transport-зависимости внедряются через интерфейсы, поэтому клиенты тестируются без запуска Git, Github CLI и сети.

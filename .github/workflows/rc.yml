@@ -16,7 +16,7 @@ concurrency:
 jobs:
   freeze:
     name: Code Freeze
-    if: github.event.workflow_run.event == 'push' && github.event.workflow_run.conclusion == 'success'
+    if: github.event.workflow_run.event == 'pull_request' && github.event.workflow_run.conclusion == 'success'
     environment:
       name: release-freeze
     runs-on: ubuntu-24.04
