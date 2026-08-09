@@ -12,6 +12,9 @@ describe('release tools', () => {
     expect(parseGithubRepository('https://github.com/sbulatnikov/airin-theater-solver.git')).toBe(
       'sbulatnikov/airin-theater-solver',
     );
+    expect(parseGithubRepository('ssh://git@github.com/sbulatnikov/airin-theater-solver')).toBe(
+      'sbulatnikov/airin-theater-solver',
+    );
     expect(() => parseGithubRepository('https://github.com/owner/repository?token=leak')).toThrow(
       'Некорректный Github repository',
     );
@@ -55,6 +58,18 @@ describe('release tools', () => {
     expect(() => finalizeUnreleased('# Changelog\n\n## Unreleased\n', '2026.2', '2026-09-15')).toThrow(
       'должен содержать',
     );
+  });
+
+  it('validates changelog structure, date, and release uniqueness', () => {
+    const valid = '# Changelog\n\n## Unreleased\n\n### Fixed\n\n- Item.\n';
+    expect(finalizeUnreleased(valid, '2026.2', '2026-09-15')).toContain('## 2026.2 — 2026-09-15');
+    expect(() => finalizeUnreleased(valid, '2026.2', '15-09-2026')).toThrow('Некорректная дата');
+    expect(() => finalizeUnreleased(`${valid}\n## 2026.2 — 2026-01-01\n`, '2026.2', '2026-09-15')).toThrow(
+      'уже содержит раздел',
+    );
+    expect(() =>
+      finalizeUnreleased(`${valid}\n## Unreleased\n\n### Added\n\n- Duplicate.\n`, '2026.2', '2026-09-15'),
+    ).toThrow('ровно один раздел Unreleased');
   });
 
   it('skips application releases for docs and CI-only merges', () => {

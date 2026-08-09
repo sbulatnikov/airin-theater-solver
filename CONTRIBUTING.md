@@ -50,13 +50,34 @@ git switch -c fix/short-description
 
 ## Проверка
 
-Перед отправкой обязательно выполните:
+Перед отправкой последовательно доступны те же проверки, которые выполняет CI:
+
+```bash
+pnpm check
+pnpm typecheck
+pnpm test:coverage
+pnpm build
+pnpm test:e2e
+```
+
+Coverage использует V8 и учитывает тестируемую TypeScript-логику расчётного ядра, UI helpers, Git/GitHub clients и
+release helpers. Для Statements, Branches, Functions и Lines действует обязательный глобальный порог 90%. Отчёт
+создаётся локально в игнорируемом каталоге `coverage/`, а значения в README синхронизируются командами:
+
+```bash
+pnpm coverage:update
+pnpm coverage:check
+```
+
+Перед публикацией Pull Request обязательно выполните итоговую команду:
 
 ```bash
 pnpm test
 ```
 
-Biome должен завершаться без замечаний. Для локального автоматического исправления используйте `pnpm check:write`; не добавляйте параллельную конфигурацию ESLint или Prettier.
+Она запускает Biome, TypeScript/Vue typecheck, unit coverage с проверкой README, production build и Playwright E2E.
+Biome должен завершаться без замечаний. Для локального автоматического исправления используйте `pnpm check:write`; не
+добавляйте параллельную конфигурацию ESLint или Prettier.
 
 Для изменения интерфейса дополнительно откройте собранную страницу `dist/v2/index.html` хотя бы в одном Chromium-браузере.
 
@@ -83,6 +104,9 @@ gh pr create --base main --template .github/PULL_REQUEST_TEMPLATE/feat.md
 
 В Web UI шаблон можно выбрать параметром `template`, например `?template=feat.md`. Dependabot формирует описание PR
 самостоятельно. Для `docs/*` отдельный шаблон пока не используется.
+
+Checklist в шаблоне предназначен для self-review перед отправкой. Markdown-checkboxes сами по себе не блокируют
+создание или merge Pull Request; техническую защиту обеспечивают coverage thresholds, обязательные CI checks и Ruleset.
 
 В описании укажите:
 

@@ -32,6 +32,12 @@ describe.each(engines)('%s: анализ доступных вариантов',
     expect(() => engine.bestFutureGain({ blue: 0, green: 0, red: 0 }, 'СК', 17)).toThrow(RangeError);
     expect(() => engine.analyzeOptions([], ['УК'])).toThrow(TypeError);
   });
+
+  it('позволяет безопасно сбросить memoized прогноз', () => {
+    engine.bestFutureGain({ blue: 2, green: 2, red: 2 }, 'СК', 3);
+    expect(() => engine.clearStrategyCache()).not.toThrow();
+    expect(engine.bestFutureGain({ blue: 2, green: 2, red: 2 }, 'СК', 3)).toBeGreaterThanOrEqual(0);
+  });
 });
 
 describe('@airin-play/core/v2: победная цепочка', () => {

@@ -28,6 +28,20 @@ pnpm test
 
 Команда запускает Biome, проверяет TypeScript и Vue, выполняет тесты расчётного движка, собирает автономную страницу и прогоняет пользовательские сценарии Playwright в Chromium.
 
+## Покрытие тестами
+
+Это unit coverage тестируемой TypeScript-логики: расчётного ядра, UI helpers, Git/GitHub clients и release helpers.
+Значения обновляются командой `pnpm coverage:update`; обязательный минимум для каждой метрики — 90%.
+
+<!-- coverage:start -->
+| Метрика | Покрытие | Минимум |
+| --- | ---: | ---: |
+| Statements | 97.06% | 90% |
+| Branches | 91.52% | 90% |
+| Functions | 97.91% | 90% |
+| Lines | 98.31% | 90% |
+<!-- coverage:end -->
+
 ## Сборка
 
 ```bash

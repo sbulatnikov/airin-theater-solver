@@ -25,16 +25,21 @@
     "check:write": "biome check --write .",
     "typecheck:scripts": "tsc --noEmit -p tsconfig.scripts.json",
     "typecheck": "pnpm typecheck:scripts && pnpm --filter @airin-play/v2 typecheck",
-    "test:unit": "vitest run tests/core --pool=threads --maxWorkers=1",
+    "test:unit": "vitest run",
+    "test:coverage": "vitest run --coverage",
+    "coverage:update": "pnpm test:coverage && tsx scripts/coverage/summary.ts --write",
+    "coverage:check": "pnpm test:coverage && tsx scripts/coverage/summary.ts --check",
+    "coverage:summary": "tsx scripts/coverage/summary.ts --github-summary",
     "test:e2e": "playwright test",
     "test:e2e:build": "pnpm build && pnpm test:e2e",
-    "test": "pnpm check && pnpm typecheck && pnpm test:unit && pnpm build && pnpm test:e2e"
+    "test": "pnpm check && pnpm typecheck && pnpm coverage:check && pnpm build && pnpm test:e2e"
   },
   "devDependencies": {
     "@airin-play/core": "workspace:*",
     "@biomejs/biome": "catalog:",
     "@playwright/test": "^1.62.1",
     "@types/node": "catalog:",
+    "@vitest/coverage-v8": "4.1.10",
     "tsx": "4.23.11",
     "typescript": "catalog:",
     "vitest": "catalog:"

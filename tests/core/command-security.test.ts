@@ -1,8 +1,10 @@
-import { describe, expect, it } from 'vitest';
-import { ProcessCommandExecutor } from '../../scripts/shared/command.ts';
+import { afterEach, describe, expect, it, vi } from 'vitest';
+import { ProcessCommandExecutor, requireEnvironment } from '../../scripts/shared/command.ts';
 import { environmentWithoutCredentialTracing, redactCredentials } from '../../scripts/shared/safe-environment.ts';
 
 describe('credential-safe command execution', () => {
+  afterEach(() => vi.unstubAllEnvs());
+
   it('redacts credentials from process errors', () => {
     const executor = new ProcessCommandExecutor();
     const token = 'test-sensitive-value';
@@ -20,6 +22,19 @@ describe('credential-safe command execution', () => {
     } catch (error) {
       expect(String(error)).not.toContain(token);
     }
+  });
+
+  it('returns trimmed output, reports success, and validates required environment variables', () => {
+    const executor = new ProcessCommandExecutor();
+
+    expect(executor.run(process.execPath, ['-e', 'process.stdout.write(" result ")'])).toBe('result');
+    expect(executor.succeeds(process.execPath, ['-e', 'process.exit(0)'])).toBe(true);
+    expect(executor.succeeds(process.execPath, ['-e', 'process.exit(2)'])).toBe(false);
+
+    vi.stubEnv('REQUIRED_FIXTURE', 'present');
+    expect(requireEnvironment('REQUIRED_FIXTURE')).toBe('present');
+    vi.stubEnv('REQUIRED_FIXTURE', '');
+    expect(() => requireEnvironment('REQUIRED_FIXTURE')).toThrow('Обязательная переменная');
   });
 
   it('removes credential tracing flags and redacts authorization headers', () => {

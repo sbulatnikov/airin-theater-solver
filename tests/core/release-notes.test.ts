@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import {
   formatReleaseNotes,
+  generateReleaseNotes,
   includesReleaseNotes,
   parseReleaseLog,
   pullRequestNumber,
@@ -52,12 +53,22 @@ describe('release notes', () => {
       { sha: '1234567890abcdef', subject: 'fix: first (#6)', body: 'Body' },
       { sha: 'abcdef1234567890', subject: 'feat: second (#7)', body: '' },
     ]);
+    expect(() => parseReleaseLog('sha-only')).toThrow('неполную запись');
   });
 
   it('recognizes explicit PR references and release housekeeping', () => {
     expect(pullRequestNumber(commit())).toBe(6);
     expect(pullRequestNumber(commit({ subject: 'fix: pipeline', body: 'Pull-Request: #17' }))).toBe(17);
     expect(pullRequestNumber(commit({ subject: 'fix: resolve #42', body: '' }))).toBeUndefined();
+    expect(
+      pullRequestNumber(
+        commit({
+          subject: 'fix: pipeline',
+          body: 'https://github.com/sbulatnikov/airin-theater-solver/pull/19',
+        }),
+      ),
+    ).toBe(19);
+    expect(pullRequestNumber(commit({ subject: 'fix: pipeline', body: 'Source-PR: #21' }))).toBe(21);
     expect(skipsReleaseNotes(commit({ body: 'Release-Notes: skip' }))).toBe(true);
   });
 
@@ -107,11 +118,36 @@ describe('release notes', () => {
 
 - [\`1234567\`](https://github.com/sbulatnikov/airin-theater-solver/commit/1234567890abcdef) fix(ci): repair release pipeline ([#6](https://github.com/sbulatnikov/airin-theater-solver/pull/6)) — [@backend](https://github.com/backend)
 `);
+    expect(() => formatReleaseNotes([], 'owner/repository')).toThrow('нет публикуемых изменений');
+    expect(() => formatReleaseNotes([change()], 'invalid repository')).toThrow('Некорректный GitHub repository');
   });
 
   it('keeps documentation and CI commits out of the user-facing Change Log', () => {
     expect(includesReleaseNotes({ ...pullRequest, head: { ...pullRequest.head, ref: 'ci/release' } })).toBe(false);
     expect(includesReleaseNotes({ ...pullRequest, head: { ...pullRequest.head, ref: 'docs/readme' } })).toBe(false);
     expect(includesReleaseNotes({ ...pullRequest, head: { ...pullRequest.head, ref: 'feat/tutorial' } })).toBe(true);
+  });
+
+  it('generates notes from Git history while skipping housekeeping and CI pull requests', async () => {
+    const feature = change({
+      commit: commit({ sha: 'aaaaaaaaaaaaaaa', subject: 'feat: tutorial (#6)' }),
+    });
+    const ciPullRequest = { ...pullRequest, number: 7, head: { ref: 'ci/cache', sha: 'bbbbbbbbbbbbbbb' } };
+    const github = githubReader({
+      getPullRequest: async (number) => (number === 6 ? feature.pullRequest : ciPullRequest),
+    });
+    const git = {
+      log: () =>
+        [
+          'aaaaaaaaaaaaaaa\u001ffeat: tutorial (#6)\u001f\u001e',
+          'bbbbbbbbbbbbbbb\u001fci: cache (#7)\u001f\u001e',
+          'ccccccccccccccc\u001fchore(release): prepare 2026.2\u001fRelease-Notes: skip\u001e',
+        ].join(''),
+    };
+
+    await expect(generateReleaseNotes('2026.1', 'main', github, git as never)).resolves.toContain('feat: tutorial');
+    const notes = await generateReleaseNotes('2026.1', 'main', github, git as never);
+    expect(notes).not.toContain('ci: cache');
+    expect(notes).not.toContain('prepare 2026.2');
   });
 });
