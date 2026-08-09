@@ -113,8 +113,8 @@ jobs:
         if: ${{ startsWith(github.head_ref, 'hotfix/') || startsWith(github.head_ref, 'rc/') }}
         run: pnpm exec tsx scripts/release/validate-release-notes.ts
         env:
-          GITHUB_SHA: ${{ github.event.pull_request.head.sha }}
           GITHUB_TOKEN: ${{ github.token }}
+          RELEASE_TARGET_SHA: ${{ github.event.pull_request.head.sha }}
       - name: Skip non-release branch
         if: ${{ !startsWith(github.head_ref, 'hotfix/') && !startsWith(github.head_ref, 'rc/') }}
         run: echo "Release notes validation is not required for this branch type."

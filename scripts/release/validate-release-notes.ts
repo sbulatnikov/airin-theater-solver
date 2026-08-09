@@ -6,7 +6,7 @@ import { generateReleaseNotes } from './release-notes.ts';
 
 const git = new GitClientFactory().create();
 const github = new GithubClientFactory().create();
-const target = requireEnvironment('GITHUB_SHA');
+const target = requireEnvironment('RELEASE_TARGET_SHA');
 const previousTag = git.listTags('20*', { sort: '-version:refname' }).find((tag) => {
   try {
     parseStableRelease(tag);
