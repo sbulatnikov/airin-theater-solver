@@ -4,51 +4,51 @@ import {
   isStrategySolverEngine,
   type SolverEngine,
   type TurnInput,
-  type TurnType
-} from "@airin-play/core/shared";
-import { computed, nextTick, onBeforeUnmount, onMounted, reactive, ref } from "vue";
-import ReplyChips from "./components/ReplyChips.vue";
-import ThemeToggle from "./components/ThemeToggle.vue";
-import type { AppConfig } from "./config";
-import "./styles.css";
+  type TurnType,
+} from '@airin-play/core/shared';
+import { computed, nextTick, onBeforeUnmount, onMounted, reactive, ref } from 'vue';
+import ReplyChips from './components/ReplyChips.vue';
+import ThemeToggle from './components/ThemeToggle.vue';
+import type { AppConfig } from './config';
+import './styles.css';
 
 const props = defineProps<{ engine: SolverEngine; config: AppConfig }>();
 const { engine, config } = props;
 const state = reactive<{ started: boolean; mode: TurnType; turns: TurnInput[]; selectedQuickOptions: string[] }>({
   started: false,
-  mode: "controlled",
+  mode: 'controlled',
   turns: [],
-  selectedQuickOptions: []
+  selectedQuickOptions: [],
 });
-const optionsInput = ref("");
-const resultInput = ref("");
-const optionsError = ref("");
-const resultError = ref("");
+const optionsInput = ref('');
+const resultInput = ref('');
+const optionsError = ref('');
+const resultError = ref('');
 const analyzedOptions = ref<AnalysisResult[]>([]);
 const debugDownloaded = ref(false);
 const optionsElement = ref<HTMLInputElement | null>(null);
 const resultElement = ref<HTMLInputElement | null>(null);
 
-type Theme = "dark" | "light";
-const THEME_STORAGE_KEY = "airin-play-theme";
-const DARK_THEME_COLOR = "#0c1118";
-const LIGHT_THEME_COLOR = "#f4f1eb";
+type Theme = 'dark' | 'light';
+const THEME_STORAGE_KEY = 'airin-play-theme';
+const DARK_THEME_COLOR = '#0c1118';
+const LIGHT_THEME_COLOR = '#f4f1eb';
 
 function readStoredTheme(): Theme | null {
   try {
     const stored = window.localStorage.getItem(THEME_STORAGE_KEY);
-    return stored === "dark" || stored === "light" ? stored : null;
+    return stored === 'dark' || stored === 'light' ? stored : null;
   } catch {
     return null;
   }
 }
 function systemTheme(): Theme {
-  return window.matchMedia("(prefers-color-scheme: dark)").matches ? "dark" : "light";
+  return window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light';
 }
 
 const storedTheme = ref<Theme | null>(readStoredTheme());
 const theme = ref<Theme>(storedTheme.value ?? systemTheme());
-const colorSchemeQuery = window.matchMedia("(prefers-color-scheme: dark)");
+const colorSchemeQuery = window.matchMedia('(prefers-color-scheme: dark)');
 
 function applyTheme(nextTheme: Theme): void {
   theme.value = nextTheme;
@@ -56,10 +56,10 @@ function applyTheme(nextTheme: Theme): void {
   document.documentElement.style.colorScheme = nextTheme;
   document
     .querySelector('meta[name="theme-color"]')
-    ?.setAttribute("content", nextTheme === "dark" ? DARK_THEME_COLOR : LIGHT_THEME_COLOR);
+    ?.setAttribute('content', nextTheme === 'dark' ? DARK_THEME_COLOR : LIGHT_THEME_COLOR);
 }
 function toggleTheme(): void {
-  const nextTheme = theme.value === "dark" ? "light" : "dark";
+  const nextTheme = theme.value === 'dark' ? 'light' : 'dark';
   storedTheme.value = nextTheme;
   try {
     window.localStorage.setItem(THEME_STORAGE_KEY, nextTheme);
@@ -69,7 +69,7 @@ function toggleTheme(): void {
   applyTheme(nextTheme);
 }
 function handleSystemThemeChange(event: MediaQueryListEvent): void {
-  if (storedTheme.value === null) applyTheme(event.matches ? "dark" : "light");
+  if (storedTheme.value === null) applyTheme(event.matches ? 'dark' : 'light');
 }
 
 const calculated = computed(() => engine.calculateState(state.turns));
@@ -78,7 +78,7 @@ const currentTurn = computed(() => Math.min(state.turns.length + 1, engine.total
 const strategyResults = computed(() => (finished.value ? [] : engine.analyzeOptions(state.turns, engine.replyTypes)));
 const idealReplies = computed(() => strategyResults.value.filter((result) => result.isBest).slice(0, 3));
 const idealRoute = computed(() =>
-  config.idealRoute && isStrategySolverEngine(engine) ? engine.buildIdealChain(state.turns) : null
+  config.idealRoute && isStrategySolverEngine(engine) ? engine.buildIdealChain(state.turns) : null,
 );
 const remaining = computed(() => Math.max(0, engine.targetScore - calculated.value.audience));
 const turnsLeft = computed(() => engine.totalTurns - state.turns.length);
@@ -86,51 +86,51 @@ const neededPace = computed(() => (turnsLeft.value > 0 ? Math.ceil(remaining.val
 const theoreticalMaximum = computed(() =>
   strategyResults.value.length
     ? Math.max(...strategyResults.value.map((result) => result.projectedAudience))
-    : calculated.value.audience
+    : calculated.value.audience,
 );
 const scoreSpread = computed(() => {
   const values = engine.colorKeys.map((key) => calculated.value.scores[key]);
   return Math.max(...values) - Math.min(...values);
 });
 const balanceText = computed(() => {
-  if (scoreSpread.value === 0) return "Все цвета равны";
-  if (scoreSpread.value === 1) return "Почти идеально";
+  if (scoreSpread.value === 0) return 'Все цвета равны';
+  if (scoreSpread.value === 1) return 'Почти идеально';
   return `Разница: ${scoreSpread.value} ${pluralizePoints(scoreSpread.value)}`;
 });
 const paceText = computed(() => {
-  if (remaining.value === 0) return "цель достигнута";
-  if (turnsLeft.value === 0) return "ходы закончились";
-  return `${neededPace.value} за ход${neededPace.value > 3 ? " · невозможно" : ""}`;
+  if (remaining.value === 0) return 'цель достигнута';
+  if (turnsLeft.value === 0) return 'ходы закончились';
+  return `${neededPace.value} за ход${neededPace.value > 3 ? ' · невозможно' : ''}`;
 });
 const finishWon = computed(() => calculated.value.audience >= engine.targetScore);
 
 function pluralizePoints(value: number): string {
   const absolute = Math.abs(value) % 100;
   const last = absolute % 10;
-  if (absolute > 10 && absolute < 20) return "очков";
-  if (last === 1) return "очко";
-  if (last >= 2 && last <= 4) return "очка";
-  return "очков";
+  if (absolute > 10 && absolute < 20) return 'очков';
+  if (last === 1) return 'очко';
+  if (last >= 2 && last <= 4) return 'очка';
+  return 'очков';
 }
 
 function setMode(mode: TurnType): void {
   state.mode = mode;
   hideRecommendations();
-  optionsError.value = "";
-  resultError.value = "";
-  void nextTick(() => (mode === "controlled" ? optionsElement.value : resultElement.value)?.focus());
+  optionsError.value = '';
+  resultError.value = '';
+  void nextTick(() => (mode === 'controlled' ? optionsElement.value : resultElement.value)?.focus());
 }
 function handleModeKeydown(event: KeyboardEvent): void {
-  if (!["ArrowLeft", "ArrowRight", "Home", "End"].includes(event.key)) return;
+  if (!['ArrowLeft', 'ArrowRight', 'Home', 'End'].includes(event.key)) return;
   event.preventDefault();
   setMode(
-    event.key === "Home"
-      ? "controlled"
-      : event.key === "End"
-        ? "anonymous"
-        : state.mode === "controlled"
-          ? "anonymous"
-          : "controlled"
+    event.key === 'Home'
+      ? 'controlled'
+      : event.key === 'End'
+        ? 'anonymous'
+        : state.mode === 'controlled'
+          ? 'anonymous'
+          : 'controlled',
   );
 }
 function hideRecommendations(): void {
@@ -146,7 +146,7 @@ function handleAnalyze(): void {
     hideRecommendations();
     return;
   }
-  optionsError.value = "";
+  optionsError.value = '';
   analyze(parsed.value);
 }
 function handleOptionsInput(event: Event): void {
@@ -154,23 +154,23 @@ function handleOptionsInput(event: Event): void {
   const parts = optionsInput.value.trim().split(/\s+/).filter(Boolean);
   const complete = parts.length === 3 && parts.every((part) => part.length === 2);
   const validation = complete ? engine.parseOptions(optionsInput.value) : { ok: true as const, value: [] };
-  optionsError.value = validation.ok ? "" : validation.error;
+  optionsError.value = validation.ok ? '' : validation.error;
   hideRecommendations();
 }
 function handleResultInput(event: Event): void {
   resultInput.value = engine.sanitizeReplyInput((event.target as HTMLInputElement).value);
-  resultError.value = "";
+  resultError.value = '';
 }
 function addTurn(reply: string, type: TurnType): void {
   if (finished.value) return;
   state.turns.push({ reply, type });
   state.selectedQuickOptions = [];
-  optionsInput.value = "";
-  resultInput.value = "";
-  optionsError.value = "";
-  resultError.value = "";
+  optionsInput.value = '';
+  resultInput.value = '';
+  optionsError.value = '';
+  resultError.value = '';
   hideRecommendations();
-  void nextTick(() => (state.mode === "controlled" ? optionsElement.value : resultElement.value)?.focus());
+  void nextTick(() => (state.mode === 'controlled' ? optionsElement.value : resultElement.value)?.focus());
 }
 function handleAnonymousRecord(): void {
   const parsed = engine.parseReply(resultInput.value);
@@ -178,7 +178,7 @@ function handleAnonymousRecord(): void {
     resultError.value = parsed.error;
     return;
   }
-  addTurn(parsed.value, "anonymous");
+  addTurn(parsed.value, 'anonymous');
 }
 function toggleQuickOption(reply: string): void {
   const index = state.selectedQuickOptions.indexOf(reply);
@@ -190,32 +190,32 @@ function toggleQuickOption(reply: string): void {
 function undo(): void {
   state.turns.pop();
   state.selectedQuickOptions = [];
-  optionsError.value = "";
-  resultError.value = "";
+  optionsError.value = '';
+  resultError.value = '';
   hideRecommendations();
 }
 function resetGame(skipConfirmation = false): void {
   if (
     !skipConfirmation &&
     state.turns.length > 0 &&
-    !window.confirm("Начать новую пьесу? История текущей пьесы будет удалена.")
+    !window.confirm('Начать новую пьесу? История текущей пьесы будет удалена.')
   )
     return;
   state.turns.splice(0);
   state.selectedQuickOptions = [];
-  optionsInput.value = "";
-  resultInput.value = "";
-  optionsError.value = "";
-  resultError.value = "";
+  optionsInput.value = '';
+  resultInput.value = '';
+  optionsError.value = '';
+  resultError.value = '';
   hideRecommendations();
-  setMode("controlled");
+  setMode('controlled');
 }
 function startGame(): void {
   state.started = true;
   resetGame(true);
 }
 function formatGainDetails(result: AnalysisResult): string[] {
-  if (state.turns.length === 0) return ["Первая реплика", "+0 восторга"];
+  if (state.turns.length === 0) return ['Первая реплика', '+0 восторга'];
   return [`Общий цвет +${result.shared}`, `Баланс +${result.balance}`];
 }
 function compactResult(result: AnalysisResult) {
@@ -229,7 +229,7 @@ function compactResult(result: AnalysisResult) {
     projectedGain: result.projectedGain,
     projectedAudience: result.projectedAudience,
     isBest: result.isBest,
-    scoresAfter: result.scoresAfter
+    scoresAfter: result.scoresAfter,
   };
 }
 function buildDebugPayload() {
@@ -240,19 +240,19 @@ function buildDebugPayload() {
       });
       return total;
     },
-    { blue: 0, green: 0, red: 0 }
+    { blue: 0, green: 0, red: 0 },
   );
   const summedAudience = calculated.value.calculatedTurns.reduce((total, turn) => total + turn.gain, 0);
   return {
-    schema: "airin-play-debug-snapshot",
-    schemaVersion: "1.1.0",
-    encoding: "base64(utf8-json)",
+    schema: 'airin-play-debug-snapshot',
+    schemaVersion: '1.1.0',
+    encoding: 'base64(utf8-json)',
     application: {
-      name: "Суфлёр",
+      name: 'Суфлёр',
       variant: config.variant,
       version: config.version,
       engineVersion: engine.version,
-      author: config.author
+      author: config.author,
     },
     capturedAt: new Date().toISOString(),
     environment: {
@@ -260,19 +260,19 @@ function buildDebugPayload() {
       userAgent: navigator.userAgent,
       language: navigator.language,
       viewport: { width: window.innerWidth, height: window.innerHeight },
-      online: navigator.onLine
+      online: navigator.onLine,
     },
     rules: {
       totalTurns: engine.totalTurns,
       targetAudience: engine.targetScore,
       replyTypes: [...engine.replyTypes],
-      scoringRevision: "active-equality-minimum-two",
+      scoringRevision: 'active-equality-minimum-two',
       firstTurnAudience: 0,
       sharedColorBonus: 1,
       pairEqualityBonus: 1,
       tripleEqualityBonus: 2,
       minimumEqualityValue: 2,
-      equalityMustTouchCurrentReply: true
+      equalityMustTouchCurrentReply: true,
     },
     session: {
       started: state.started,
@@ -284,8 +284,8 @@ function buildDebugPayload() {
         controlled: optionsInput.value,
         anonymous: resultInput.value,
         controlledError: optionsError.value,
-        anonymousError: resultError.value
-      }
+        anonymousError: resultError.value,
+      },
     },
     calculations: {
       current: {
@@ -295,25 +295,25 @@ function buildDebugPayload() {
         remainingTurns: turnsLeft.value,
         remainingToTarget: remaining.value,
         finished: finished.value,
-        won: finishWon.value
+        won: finishWon.value,
       },
       turns: calculated.value.calculatedTurns,
       analyzedOptions: analyzedOptions.value.map(compactResult),
       idealCandidates: strategyResults.value.map(compactResult),
-      idealRoute: idealRoute.value
+      idealRoute: idealRoute.value,
     },
     integrity: {
       audienceEqualsTurnSum: calculated.value.audience === summedAudience,
       scoresEqualContributionSum: engine.colorKeys.every((key) => calculated.value.scores[key] === summedScores[key]),
       turnCountWithinLimit: state.turns.length <= engine.totalTurns,
       summedScores,
-      summedAudience
-    }
+      summedAudience,
+    },
   };
 }
 function encodeBase64Utf8(value: string): string {
   const bytes = new TextEncoder().encode(value);
-  let binary = "";
+  let binary = '';
   const chunkSize = 0x8000;
   for (let index = 0; index < bytes.length; index += chunkSize) {
     binary += String.fromCharCode(...bytes.subarray(index, index + chunkSize));
@@ -322,11 +322,11 @@ function encodeBase64Utf8(value: string): string {
 }
 function downloadDebugSnapshot(): void {
   const payload = buildDebugPayload();
-  const blob = new Blob([encodeBase64Utf8(JSON.stringify(payload))], { type: "text/plain;charset=us-ascii" });
+  const blob = new Blob([encodeBase64Utf8(JSON.stringify(payload))], { type: 'text/plain;charset=us-ascii' });
   const url = URL.createObjectURL(blob);
-  const link = document.createElement("a");
+  const link = document.createElement('a');
   link.href = url;
-  link.download = `airinplay-debug-${config.variant}-v${config.version}-${payload.capturedAt.replace(/[:.]/g, "-")}.txt`;
+  link.download = `airinplay-debug-${config.variant}-v${config.version}-${payload.capturedAt.replace(/[:.]/g, '-')}.txt`;
   document.body.appendChild(link);
   link.click();
   link.remove();
@@ -338,16 +338,16 @@ function downloadDebugSnapshot(): void {
 }
 onMounted(() => {
   applyTheme(theme.value);
-  colorSchemeQuery.addEventListener("change", handleSystemThemeChange);
+  colorSchemeQuery.addEventListener('change', handleSystemThemeChange);
   document.title = `Суфлёр — ${config.version}`;
-  document.querySelector('meta[name="version"]')?.setAttribute("content", config.version);
-  document.querySelector('meta[name="author"]')?.setAttribute("content", config.author);
+  document.querySelector('meta[name="version"]')?.setAttribute('content', config.version);
+  document.querySelector('meta[name="author"]')?.setAttribute('content', config.author);
   Object.assign(window, {
     AirinPlayEngine: engine,
-    AirinPlayDebug: { buildDebugPayload, encodeBase64Utf8 }
+    AirinPlayDebug: { buildDebugPayload, encodeBase64Utf8 },
   });
 });
-onBeforeUnmount(() => colorSchemeQuery.removeEventListener("change", handleSystemThemeChange));
+onBeforeUnmount(() => colorSchemeQuery.removeEventListener('change', handleSystemThemeChange));
 </script>
 
 <template>

@@ -1,5 +1,5 @@
-import { BaseEngine, type IdealRoute, type StrategySolverEngine, type TurnInput } from "../shared";
-import manifest from "./package.json";
+import { BaseEngine, type IdealRoute, type StrategySolverEngine, type TurnInput } from '../shared';
+import manifest from './package.json';
 
 export class Engine extends BaseEngine implements StrategySolverEngine {
   public constructor(version = manifest.version) {
@@ -24,7 +24,7 @@ export class Engine extends BaseEngine implements StrategySolverEngine {
             order,
             result,
             totalGain: result.gain + this.bestFutureGain(result.scores, reply, futureTurns),
-            spread: this.scoreSpread(result.scores)
+            spread: this.scoreSpread(result.scores),
           };
         })
         .sort(
@@ -32,15 +32,15 @@ export class Engine extends BaseEngine implements StrategySolverEngine {
             second.totalGain - first.totalGain ||
             second.result.gain - first.result.gain ||
             first.spread - second.spread ||
-            first.order - second.order
+            first.order - second.order,
         )[0];
-      if (!choice) throw new Error("Невозможно построить маршрут без доступных типов реплик.");
+      if (!choice) throw new Error('Невозможно построить маршрут без доступных типов реплик.');
       projectedAudience += choice.result.gain;
       steps.push({
         number: turns.length + offset + 1,
         reply: choice.reply,
         gain: choice.result.gain,
-        audienceAfter: projectedAudience
+        audienceAfter: projectedAudience,
       });
       scores = choice.result.scores;
       previousReply = choice.reply;

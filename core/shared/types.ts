@@ -1,6 +1,6 @@
-export type ColorLetter = "С" | "З" | "К";
-export type ColorKey = "blue" | "green" | "red";
-export type TurnType = "controlled" | "anonymous";
+export type ColorLetter = 'С' | 'З' | 'К';
+export type ColorKey = 'blue' | 'green' | 'red';
+export type TurnType = 'controlled' | 'anonymous';
 
 export interface Scores {
   blue: number;
@@ -80,5 +80,5 @@ export interface StrategySolverEngine extends SolverEngine {
 }
 
 export function isStrategySolverEngine(engine: SolverEngine): engine is StrategySolverEngine {
-  return "buildIdealChain" in engine && typeof engine.buildIdealChain === "function";
+  return 'buildIdealChain' in engine && typeof engine.buildIdealChain === 'function';
 }

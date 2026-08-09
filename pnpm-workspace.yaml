@@ -3,9 +3,12 @@ packages:
   - "core"
   - "packages/*"
 
+allowBuilds:
+  esbuild: false
+
 catalog:
   "@biomejs/biome": 2.5.6
-  "@types/node": ^24.10.0
+  "@types/node": ^24.13.3
   "@vitejs/plugin-vue": ^6.0.8
   typescript: ^6.0.3
   vite: ^8.0.16

@@ -1,0 +1,129 @@
+name: CI
+
+on:
+  pull_request:
+    branches: [main]
+
+permissions: {}
+
+concurrency:
+  group: ci-${{ github.event.pull_request.head.repo.full_name }}-${{ github.event.pull_request.head.ref }}
+  cancel-in-progress: true
+
+jobs:
+  dependencies:
+    name: Install dependencies
+    if: ${{ !startsWith(github.head_ref, 'docs/') }}
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    permissions:
+      contents: read
+    steps:
+      - name: Checkout
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+
+      - name: Prime dependency cache
+        uses: ./.github/actions/setup-workspace
+        with:
+          offline: "false"
+
+  lint:
+    name: Lint
+    needs: dependencies
+    if: ${{ always() && (startsWith(github.head_ref, 'docs/') || needs.dependencies.result == 'success') }}
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    permissions:
+      contents: read
+    steps:
+      - name: Checkout
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          fetch-depth: 0
+          persist-credentials: false
+      - name: Validate documentation scope
+        if: ${{ startsWith(github.head_ref, 'docs/') }}
+        run: bash scripts/ci/validate-docs-pr.sh
+        env:
+          BASE_SHA: ${{ github.event.pull_request.base.sha }}
+          HEAD_SHA: ${{ github.event.pull_request.head.sha }}
+      - name: Restore workspace
+        if: ${{ !startsWith(github.head_ref, 'docs/') }}
+        uses: ./.github/actions/setup-workspace
+      - name: Biome lint and formatting
+        if: ${{ !startsWith(github.head_ref, 'docs/') }}
+        run: pnpm check
+
+  typecheck:
+    name: Typecheck
+    needs: dependencies
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    permissions:
+      contents: read
+    steps:
+      - name: Checkout
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - name: Restore workspace
+        uses: ./.github/actions/setup-workspace
+      - name: TypeScript and Vue
+        run: pnpm typecheck
+
+  unit:
+    name: Unit tests
+    needs: dependencies
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    permissions:
+      contents: read
+    steps:
+      - name: Checkout
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - name: Restore workspace
+        uses: ./.github/actions/setup-workspace
+      - name: Vitest
+        run: pnpm test:unit
+
+  build:
+    name: Build
+    needs: dependencies
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    permissions:
+      contents: read
+    steps:
+      - name: Checkout
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - name: Restore workspace
+        uses: ./.github/actions/setup-workspace
+      - name: Production build contracts
+        run: pnpm build
+
+  e2e:
+    name: E2E tests
+    needs: dependencies
+    runs-on: ubuntu-24.04
+    timeout-minutes: 15
+    permissions:
+      contents: read
+    steps:
+      - name: Checkout
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - name: Restore workspace
+        uses: ./.github/actions/setup-workspace
+      - name: Build application for E2E
+        run: pnpm build
+      - name: Install Playwright Chromium
+        run: pnpm exec playwright install --with-deps chromium
+      - name: Playwright
+        run: pnpm test:e2e

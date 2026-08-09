@@ -1,5 +1,5 @@
-import { BaseEngine } from "../shared";
-import manifest from "./package.json";
+import { BaseEngine } from '../shared';
+import manifest from './package.json';
 
 export class Engine extends BaseEngine {
   public constructor(version = manifest.version) {
