@@ -71,7 +71,8 @@ pnpm release:set 2026.2
 ## Pipeline рабочих веток
 
 Workflow `.github/workflows/ci.yml` запускается для `dependabot/*`, `feat/*`, `fix/*`, `rc/*` и `hotfix/*`.
-После единственной установки зависимостей он последовательно выполняет:
+Сначала job `Install dependencies` проверяет lockfile, наполняет pnpm store и сохраняет его в GitHub Actions cache.
+После этого одновременно запускаются независимые jobs:
 
 1. Biome lint и проверку форматирования;
 2. TypeScript/Vue typecheck;
@@ -79,10 +80,14 @@ Workflow `.github/workflows/ci.yml` запускается для `dependabot/*`
 4. production build с проверками контрактов артефакта;
 5. E2E и responsive/accessibility сценарии Playwright.
 
-У `rc/*` после зелёного `Checks` появляется требующий ручного одобрения этап `Code Freeze`. У остальных веток
-pipeline заканчивается проверками. При открытии pull request в `main` GitHub повторно подтверждает `Checks` в контексте
-PR; это также позволяет безопасно проверять изменения из внешних fork. Новый push отменяет незавершённый pipeline той
-же ветки, поэтому невозможно случайно заморозить устаревший RC commit.
+Каждая job восстанавливает pnpm store и создаёт локальный `node_modules` офлайн на своей изолированной VM. Финальная
+job `Checks` агрегирует результаты всех пяти проверок и является единственным обязательным статусом Branch Rules.
+
+Отдельный workflow `.github/workflows/rc-freeze.yml` запускается только после успешного push-pipeline ветки `rc/*` и
+показывает требующий ручного одобрения этап `Code Freeze`. В pipeline остальных веток этой стадии нет вообще. При
+открытии pull request в `main` GitHub повторно подтверждает проверки в контексте PR; это также позволяет безопасно
+проверять изменения из внешних fork. Новый push отменяет незавершённый pipeline той же ветки, поэтому невозможно
+случайно заморозить устаревший RC commit.
 
 ## Правила GitHub
 

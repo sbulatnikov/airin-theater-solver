@@ -4,8 +4,8 @@
 
 ### Исправлено
 
-- CI рабочих веток разделён на явно видимые проверки Biome, TypeScript, unit, production build и Playwright E2E;
-- только ветки `rc/*` получают ручной этап Code Freeze, который блокирует ветку и создаёт неизменяемый RC-тег;
+- CI рабочих веток параллельно выполняет явно видимые проверки Biome, TypeScript, unit, production build и Playwright E2E после подготовки кеша зависимостей;
+- только ветки `rc/*` получают отдельный ручной workflow Code Freeze, который блокирует ветку и создаёт неизменяемый RC-тег;
 - обновление `main` теперь запускает единый стабильный release pipeline: тег, артефакты, GitHub Release и GitHub Pages;
 - hotfix проходит в `main` исключительно через pull request и увеличивает только patch без создания release candidate.
 

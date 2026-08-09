@@ -18,10 +18,10 @@ concurrency:
   cancel-in-progress: true
 
 jobs:
-  checks:
-    name: Checks
+  dependencies:
+    name: Install dependencies
     runs-on: ubuntu-24.04
-    timeout-minutes: 20
+    timeout-minutes: 10
     permissions:
       contents: read
     steps:
@@ -39,115 +39,148 @@ jobs:
           node-version: 24
           cache: pnpm
 
-      - name: Install dependencies
+      - name: Prime dependency cache
         run: pnpm install --frozen-lockfile --ignore-scripts
 
-      - name: Lint and formatting
-        run: pnpm check
-
-      - name: Type checking
-        run: pnpm typecheck
-
-      - name: Unit tests
-        run: pnpm test:unit
-
-      - name: Production build checks
-        run: pnpm build
-
-      - name: Install Playwright Chromium
-        run: pnpm exec playwright install --with-deps chromium
-
-      - name: End-to-end tests
-        run: pnpm test:e2e
-
-  freeze:
-    name: Code Freeze
-    if: github.event_name == 'push' && startsWith(github.ref, 'refs/heads/rc/')
-    needs: checks
-    environment:
-      name: release-freeze
+  lint:
+    name: Lint
+    needs: dependencies
     runs-on: ubuntu-24.04
-    timeout-minutes: 5
+    timeout-minutes: 10
     permissions:
-      contents: write
-      pull-requests: read
+      contents: read
     steps:
-      - name: Checkout candidate
+      - name: Checkout
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
-          fetch-depth: 0
           persist-credentials: false
-
+      - name: Install pnpm
+        uses: pnpm/action-setup@0ebf47130e4866e96fce0953f49152a61190b271 # v6.0.9
       - name: Install Node.js
         uses: actions/setup-node@249970729cb0ef3589644e2896645e5dc5ba9c38 # v6.5.0
         with:
           node-version: 24
+          cache: pnpm
+      - name: Restore dependencies
+        run: pnpm install --offline --frozen-lockfile --ignore-scripts
+      - name: Biome lint and formatting
+        run: pnpm check
 
-      - name: Validate release candidate
-        id: candidate
+  typecheck:
+    name: Typecheck
+    needs: dependencies
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    permissions:
+      contents: read
+    steps:
+      - name: Checkout
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - name: Install pnpm
+        uses: pnpm/action-setup@0ebf47130e4866e96fce0953f49152a61190b271 # v6.0.9
+      - name: Install Node.js
+        uses: actions/setup-node@249970729cb0ef3589644e2896645e5dc5ba9c38 # v6.5.0
+        with:
+          node-version: 24
+          cache: pnpm
+      - name: Restore dependencies
+        run: pnpm install --offline --frozen-lockfile --ignore-scripts
+      - name: TypeScript and Vue
+        run: pnpm typecheck
+
+  unit:
+    name: Unit tests
+    needs: dependencies
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    permissions:
+      contents: read
+    steps:
+      - name: Checkout
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - name: Install pnpm
+        uses: pnpm/action-setup@0ebf47130e4866e96fce0953f49152a61190b271 # v6.0.9
+      - name: Install Node.js
+        uses: actions/setup-node@249970729cb0ef3589644e2896645e5dc5ba9c38 # v6.5.0
+        with:
+          node-version: 24
+          cache: pnpm
+      - name: Restore dependencies
+        run: pnpm install --offline --frozen-lockfile --ignore-scripts
+      - name: Vitest
+        run: pnpm test:unit
+
+  build:
+    name: Build
+    needs: dependencies
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    permissions:
+      contents: read
+    steps:
+      - name: Checkout
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - name: Install pnpm
+        uses: pnpm/action-setup@0ebf47130e4866e96fce0953f49152a61190b271 # v6.0.9
+      - name: Install Node.js
+        uses: actions/setup-node@249970729cb0ef3589644e2896645e5dc5ba9c38 # v6.5.0
+        with:
+          node-version: 24
+          cache: pnpm
+      - name: Restore dependencies
+        run: pnpm install --offline --frozen-lockfile --ignore-scripts
+      - name: Production build contracts
+        run: pnpm build
+
+  e2e:
+    name: E2E tests
+    needs: dependencies
+    runs-on: ubuntu-24.04
+    timeout-minutes: 15
+    permissions:
+      contents: read
+    steps:
+      - name: Checkout
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - name: Install pnpm
+        uses: pnpm/action-setup@0ebf47130e4866e96fce0953f49152a61190b271 # v6.0.9
+      - name: Install Node.js
+        uses: actions/setup-node@249970729cb0ef3589644e2896645e5dc5ba9c38 # v6.5.0
+        with:
+          node-version: 24
+          cache: pnpm
+      - name: Restore dependencies
+        run: pnpm install --offline --frozen-lockfile --ignore-scripts
+      - name: Build application for E2E
+        run: pnpm build
+      - name: Install Playwright Chromium
+        run: pnpm exec playwright install --with-deps chromium
+      - name: Playwright
+        run: pnpm test:e2e
+
+  checks:
+    name: Checks
+    if: always()
+    needs: [lint, typecheck, unit, build, e2e]
+    runs-on: ubuntu-24.04
+    timeout-minutes: 1
+    steps:
+      - name: Require every parallel check
         shell: bash
-        env:
-          GH_TOKEN: ${{ github.token }}
-          RC_BRANCH: ${{ github.ref_name }}
         run: |
-          candidate="${RC_BRANCH#rc/}"
-          if [[ ! "$candidate" =~ ^(20[0-9]{2}\.[1-9][0-9]*(\.[1-9][0-9]*)?)-rc\.([1-9][0-9]*)$ ]]; then
-            echo "Invalid RC branch: $RC_BRANCH" >&2
+          if [[ "${{ needs.lint.result }}" != "success" || \
+                "${{ needs.typecheck.result }}" != "success" || \
+                "${{ needs.unit.result }}" != "success" || \
+                "${{ needs.build.result }}" != "success" || \
+                "${{ needs.e2e.result }}" != "success" ]]; then
+            echo "At least one required check failed or was cancelled." >&2
             exit 1
           fi
-
-          base_release="${BASH_REMATCH[1]}"
-          latest_stable="$(git tag --list '20*' --sort=-version:refname | grep -E '^20[0-9]{2}\.[1-9][0-9]*(\.[1-9][0-9]*)?$' | head -1)"
-          if [[ "$base_release" != "$latest_stable" ]]; then
-            echo "RC is based on $base_release, but latest stable is $latest_stable." >&2
-            exit 1
-          fi
-
-          node scripts/verify-release-tag.mjs "$candidate"
-          git merge-base --is-ancestor "$base_release" "$GITHUB_SHA"
-          if git rev-parse --verify --quiet "refs/tags/${candidate}" >/dev/null; then
-            echo "Candidate tag already exists: $candidate" >&2
-            exit 1
-          fi
-
-          mapfile -t rc_prs < <(gh api --paginate "repos/${GITHUB_REPOSITORY}/pulls?state=open&base=main&per_page=100" \
-            --jq '.[] | select(.head.ref | startswith("rc/")) | .head.ref' | sort -u)
-          if [[ "${#rc_prs[@]}" -ne 1 || "${rc_prs[0]}" != "$RC_BRANCH" ]]; then
-            printf 'Freeze requires one open RC PR for %s; found: %s\n' \
-              "$RC_BRANCH" "${rc_prs[*]:-none}" >&2
-            exit 1
-          fi
-
-          echo "release_tag=$candidate" >> "$GITHUB_OUTPUT"
-
-      - name: Lock candidate branch
-        shell: bash
-        env:
-          GH_TOKEN: ${{ secrets.REPOSITORY_ADMIN_TOKEN }}
-          RC_BRANCH: ${{ github.ref_name }}
-        run: |
-          if [[ -z "$GH_TOKEN" ]]; then
-            echo "REPOSITORY_ADMIN_TOKEN is not configured in the release-freeze environment." >&2
-            exit 1
-          fi
-
-          encoded_branch="${RC_BRANCH//\//%2F}"
-          payload='{"required_status_checks":null,"enforce_admins":true,"required_pull_request_reviews":null,"restrictions":null,"required_linear_history":true,"allow_force_pushes":false,"allow_deletions":false,"block_creations":false,"required_conversation_resolution":true,"lock_branch":true,"allow_fork_syncing":false}'
-          printf '%s' "$payload" | gh api --method PUT \
-            "repos/${GITHUB_REPOSITORY}/branches/${encoded_branch}/protection" --input -
-
-      - name: Create immutable candidate tag
-        shell: bash
-        env:
-          GH_TOKEN: ${{ github.token }}
-          RELEASE_TAG: ${{ steps.candidate.outputs.release_tag }}
-        run: |
-          tag_object="$(gh api --method POST "repos/${GITHUB_REPOSITORY}/git/tags" \
-            -f tag="$RELEASE_TAG" \
-            -f message="Airin Theater Solver $RELEASE_TAG" \
-            -f object="$GITHUB_SHA" \
-            -f type=commit \
-            --jq .sha)"
-          gh api --method POST "repos/${GITHUB_REPOSITORY}/git/refs" \
-            -f ref="refs/tags/$RELEASE_TAG" \
-            -f sha="$tag_object"
