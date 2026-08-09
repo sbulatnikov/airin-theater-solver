@@ -1,15 +1,15 @@
 <script setup lang="ts">
-import engine from "@airin-play/core/v1";
-import SolverApp from "@airin-play/ui";
-import type { AppConfig } from "@airin-play/ui/config";
-import manifest from "../package.json";
+import engine from '@airin-play/core/v1';
+import SolverApp from '@airin-play/ui';
+import type { AppConfig } from '@airin-play/ui/config';
+import manifest from '../package.json';
 
 const config = {
-  variant: "classic",
+  variant: 'classic',
   version: manifest.version,
-  author: "Бэкендер",
+  author: 'Бэкендер',
   quickChoice: false,
-  idealRoute: false
+  idealRoute: false,
 } satisfies AppConfig;
 </script>
 

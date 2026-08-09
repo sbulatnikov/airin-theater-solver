@@ -1,4 +1,4 @@
-import { parseStableRelease } from "../release-version.ts";
+import { parseStableRelease } from '../release-version.ts';
 
 export function stableTags(output: string): string[] {
   return output
@@ -17,7 +17,7 @@ export function stableTags(output: string): string[] {
 
 export function nextCandidateNumber(baseRelease: string, refs: string[]): number {
   parseStableRelease(baseRelease);
-  const escaped = baseRelease.replaceAll(".", "\\.");
+  const escaped = baseRelease.replaceAll('.', '\\.');
   const pattern = new RegExp(`(?:^|/)${escaped}-rc\\.([1-9]\\d*)$`);
   const numbers = refs.flatMap((ref) => {
     const match = ref.match(pattern);

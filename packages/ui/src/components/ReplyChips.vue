@@ -2,9 +2,9 @@
 defineProps<{ reply: string }>();
 
 const colorByLetter: Readonly<Record<string, string>> = {
-  С: "blue",
-  З: "green",
-  К: "red"
+  С: 'blue',
+  З: 'green',
+  К: 'red',
 };
 </script>
 

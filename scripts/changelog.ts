@@ -1,9 +1,9 @@
-import { parseStableRelease } from "./release-version.ts";
+import { parseStableRelease } from './release-version.ts';
 
 export function finalizeUnreleased(changelog: string, release: string, date: string): string {
   parseStableRelease(release);
   if (!/^\d{4}-\d{2}-\d{2}$/.test(date)) throw new Error(`Некорректная дата релиза: ${date}.`);
-  if (new RegExp(`^## ${release.replaceAll(".", "\\.")}(?:\\s|$)`, "m").test(changelog)) {
+  if (new RegExp(`^## ${release.replaceAll('.', '\\.')}(?:\\s|$)`, 'm').test(changelog)) {
     throw new Error(`CHANGELOG.md уже содержит раздел ${release}.`);
   }
 
@@ -18,7 +18,7 @@ export function finalizeUnreleased(changelog: string, release: string, date: str
   const end = nextHeadingOffset === -1 ? changelog.length : bodyStart + nextHeadingOffset;
   const body = changelog.slice(bodyStart, end).trim();
   if (!body || !/^###\s+/m.test(body) || !/^-\s+/m.test(body)) {
-    throw new Error("Раздел Unreleased должен содержать хотя бы одну категорию и один пункт.");
+    throw new Error('Раздел Unreleased должен содержать хотя бы одну категорию и один пункт.');
   }
 
   const prefix = changelog.slice(0, start);

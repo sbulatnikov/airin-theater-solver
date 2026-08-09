@@ -1,12 +1,12 @@
-import type { AnalysisResult, ColorKey, GameCalculation, ParseResult, Scores, SolverEngine, TurnInput } from "./types";
+import type { AnalysisResult, ColorKey, GameCalculation, ParseResult, Scores, SolverEngine, TurnInput } from './types';
 
 export const TOTAL_TURNS = 16;
 export const TARGET_SCORE = 26;
-export const COLOR_KEYS = ["blue", "green", "red"] as const;
-export const REPLY_TYPES = ["СС", "ЗЗ", "КК", "СЗ", "СК", "ЗК"] as const;
+export const COLOR_KEYS = ['blue', 'green', 'red'] as const;
+export const REPLY_TYPES = ['СС', 'ЗЗ', 'КК', 'СЗ', 'СК', 'ЗК'] as const;
 
-const COLOR_BY_LETTER = { С: "blue", З: "green", К: "red" } as const;
-const LATIN_TO_CYRILLIC: Readonly<Record<string, string>> = { C: "С", S: "С", Z: "З", K: "К" };
+const COLOR_BY_LETTER = { С: 'blue', З: 'green', К: 'red' } as const;
+const LATIN_TO_CYRILLIC: Readonly<Record<string, string>> = { C: 'С', S: 'С', Z: 'З', K: 'К' };
 const LETTER_ORDER: Readonly<Record<string, number>> = { С: 0, З: 1, К: 2 };
 
 export interface TransitionResult {
@@ -40,7 +40,7 @@ export abstract class BaseEngine implements SolverEngine {
 
   public sanitizeReplyInput(value: string): string {
     return this.mapLetters(value)
-      .replace(/[^СЗК]/g, "")
+      .replace(/[^СЗК]/g, '')
       .slice(0, 2);
   }
 
@@ -49,22 +49,22 @@ export abstract class BaseEngine implements SolverEngine {
     const hasTrailingSpace = /\s$/.test(mapped);
     const tokens = mapped
       .split(/\s+/)
-      .map((token) => token.replace(/[^СЗК]/g, "").slice(0, 2))
+      .map((token) => token.replace(/[^СЗК]/g, '').slice(0, 2))
       .filter(Boolean)
       .slice(0, 3);
-    const last = tokens.at(-1) ?? "";
+    const last = tokens.at(-1) ?? '';
     const keepSpace = hasTrailingSpace && tokens.length > 0 && tokens.length < 3 && last.length === 2;
-    return tokens.join(" ") + (keepSpace ? " " : "");
+    return tokens.join(' ') + (keepSpace ? ' ' : '');
   }
 
   public replySignature(reply: string): string {
-    return [...reply].sort((first, second) => LETTER_ORDER[first] - LETTER_ORDER[second]).join("");
+    return [...reply].sort((first, second) => LETTER_ORDER[first] - LETTER_ORDER[second]).join('');
   }
 
   public parseReply(value: string): ParseResult<string> {
     const normalized = this.normalizeText(value);
     if (!/^[СЗК]{2}$/.test(normalized)) {
-      return { ok: false, error: "Введите реплику из двух букв: С, З или К." };
+      return { ok: false, error: 'Введите реплику из двух букв: С, З или К.' };
     }
     return { ok: true, value: normalized };
   }
@@ -72,7 +72,7 @@ export abstract class BaseEngine implements SolverEngine {
   public parseOptions(value: string): ParseResult<string[]> {
     const parts = this.normalizeText(value).split(/\s+/).filter(Boolean);
     if (parts.length !== 3) {
-      return { ok: false, error: "Введите три реплики через пробел." };
+      return { ok: false, error: 'Введите три реплики через пробел.' };
     }
     const replies: string[] = [];
     for (const part of parts) {
@@ -82,7 +82,7 @@ export abstract class BaseEngine implements SolverEngine {
     }
     const signatures = replies.map((reply) => this.replySignature(reply));
     if (new Set(signatures).size !== signatures.length) {
-      return { ok: false, error: "Введите три разные реплики. КЗ и ЗК — один вариант." };
+      return { ok: false, error: 'Введите три разные реплики. КЗ и ЗК — один вариант.' };
     }
     return { ok: true, value: replies };
   }
@@ -122,13 +122,13 @@ export abstract class BaseEngine implements SolverEngine {
     const currentReplyChangedColor = COLOR_KEYS.some((key) => contribution[key] > 0);
     if (allEqual && scores.blue >= 2 && currentReplyChangedColor) return 2;
     const pairs: readonly (readonly [ColorKey, ColorKey])[] = [
-      ["blue", "green"],
-      ["blue", "red"],
-      ["green", "red"]
+      ['blue', 'green'],
+      ['blue', 'red'],
+      ['green', 'red'],
     ];
     const hasActivePair = pairs.some(
       ([first, second]) =>
-        scores[first] === scores[second] && scores[first] >= 2 && (contribution[first] > 0 || contribution[second] > 0)
+        scores[first] === scores[second] && scores[first] >= 2 && (contribution[first] > 0 || contribution[second] > 0),
     );
     return hasActivePair ? 1 : 0;
   }
@@ -137,7 +137,7 @@ export abstract class BaseEngine implements SolverEngine {
     scores: Scores,
     previousReply: string | null,
     reply: string,
-    hasPrevious: boolean
+    hasPrevious: boolean,
   ): TransitionResult {
     const contribution = this.replyContribution(reply);
     const nextScores = { ...scores };
@@ -174,7 +174,7 @@ export abstract class BaseEngine implements SolverEngine {
         balance: result.balance,
         gain: result.gain,
         audienceAfter: audience,
-        scoresAfter: { ...scores }
+        scoresAfter: { ...scores },
       };
     });
     return { scores, audience, previous, calculatedTurns };
@@ -184,7 +184,7 @@ export abstract class BaseEngine implements SolverEngine {
     if (!Number.isInteger(turnsRemaining) || turnsRemaining < 0 || turnsRemaining > this.totalTurns) {
       throw new RangeError(`Количество оставшихся ходов должно быть целым числом от 0 до ${this.totalTurns}.`);
     }
-    const normalizedPrevious = this.requireReply(previousReply, "Предыдущая реплика");
+    const normalizedPrevious = this.requireReply(previousReply, 'Предыдущая реплика');
     return this.memoizedBestFutureGain(scores, normalizedPrevious, turnsRemaining);
   }
 
@@ -208,9 +208,9 @@ export abstract class BaseEngine implements SolverEngine {
     const futureTurns = Math.max(0, TOTAL_TURNS - turns.length - 1);
     const results = options.map((option, optionIndex) => {
       const reply = this.requireReply(option, `Вариант ${optionIndex + 1}`);
-      const stateAfter = this.calculateState([...turns, { reply, type: "controlled" }]);
+      const stateAfter = this.calculateState([...turns, { reply, type: 'controlled' }]);
       const calculatedTurn = stateAfter.calculatedTurns.at(-1);
-      if (!calculatedTurn) throw new Error("Не удалось рассчитать добавленную реплику.");
+      if (!calculatedTurn) throw new Error('Не удалось рассчитать добавленную реплику.');
       const projectedGain = calculatedTurn.gain + this.bestFutureGain(stateAfter.scores, reply, futureTurns);
       return {
         ...calculatedTurn,
@@ -219,7 +219,7 @@ export abstract class BaseEngine implements SolverEngine {
         stateAfter,
         projectedGain,
         projectedAudience: current.audience + projectedGain,
-        isBest: false
+        isBest: false,
       };
     });
     const bestProjection = Math.max(...results.map((result) => result.projectedGain));

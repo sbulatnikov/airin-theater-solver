@@ -1,44 +1,44 @@
-import { createHash } from "node:crypto";
-import { mkdir, readFile, rm, writeFile } from "node:fs/promises";
-import { resolve } from "node:path";
+import { createHash } from 'node:crypto';
+import { mkdir, readFile, rm, writeFile } from 'node:fs/promises';
+import { resolve } from 'node:path';
 
-const root = resolve(import.meta.dirname, "..");
-const dist = resolve(root, "dist");
+const root = resolve(import.meta.dirname, '..');
+const dist = resolve(root, 'dist');
 
 function contentHashes(html: string, element: string): string[] {
-  const matches = html.matchAll(new RegExp(`<${element}\\b[^>]*>([\\s\\S]*?)<\\/${element}>`, "gi"));
-  return [...matches].map((match) => `'sha256-${createHash("sha256").update(match[1]).digest("base64")}'`);
+  const matches = html.matchAll(new RegExp(`<${element}\\b[^>]*>([\\s\\S]*?)<\\/${element}>`, 'gi'));
+  return [...matches].map((match) => `'sha256-${createHash('sha256').update(match[1]).digest('base64')}'`);
 }
 
 function applyContentSecurityPolicy(html: string, variant: string): string {
-  const scriptHashes = contentHashes(html, "script");
-  const styleHashes = contentHashes(html, "style");
+  const scriptHashes = contentHashes(html, 'script');
+  const styleHashes = contentHashes(html, 'style');
   if (scriptHashes.length === 0 || styleHashes.length === 0) {
     throw new Error(`Сборка ${variant} не содержит ожидаемые встроенные script и style.`);
   }
   const policy = [
     "default-src 'none'",
-    `script-src ${scriptHashes.join(" ")}`,
-    `style-src ${styleHashes.join(" ")} https://fonts.googleapis.com`,
-    "font-src https://fonts.gstatic.com",
-    "img-src data:",
+    `script-src ${scriptHashes.join(' ')}`,
+    `style-src ${styleHashes.join(' ')} https://fonts.googleapis.com`,
+    'font-src https://fonts.gstatic.com',
+    'img-src data:',
     "connect-src 'none'",
     "object-src 'none'",
     "base-uri 'none'",
-    "form-action 'none'"
-  ].join("; ");
-  if (!html.includes("__AIRIN_CSP__")) throw new Error(`Сборка ${variant} не содержит CSP placeholder.`);
-  return html.replace("__AIRIN_CSP__", policy);
+    "form-action 'none'",
+  ].join('; ');
+  if (!html.includes('__AIRIN_CSP__')) throw new Error(`Сборка ${variant} не содержит CSP placeholder.`);
+  return html.replace('__AIRIN_CSP__', policy);
 }
 
-const v1Html = applyContentSecurityPolicy(await readFile(resolve(root, ".build/v1/index.html"), "utf8"), "v1");
-const v2Html = applyContentSecurityPolicy(await readFile(resolve(root, ".build/v2/index.html"), "utf8"), "v2");
-const v1Version = JSON.parse(await readFile(resolve(root, "apps/v1/package.json"), "utf8")).version;
-const v2Version = JSON.parse(await readFile(resolve(root, "apps/v2/package.json"), "utf8")).version;
+const v1Html = applyContentSecurityPolicy(await readFile(resolve(root, '.build/v1/index.html'), 'utf8'), 'v1');
+const v2Html = applyContentSecurityPolicy(await readFile(resolve(root, '.build/v2/index.html'), 'utf8'), 'v2');
+const v1Version = JSON.parse(await readFile(resolve(root, 'apps/v1/package.json'), 'utf8')).version;
+const v2Version = JSON.parse(await readFile(resolve(root, 'apps/v2/package.json'), 'utf8')).version;
 
 const builds = [
-  { name: "v1", html: v1Html, version: v1Version, marker: "classic", foreignMarker: "strategy-tree" },
-  { name: "v2", html: v2Html, version: v2Version, marker: "strategy-tree", foreignMarker: "classic" }
+  { name: 'v1', html: v1Html, version: v1Version, marker: 'classic', foreignMarker: 'strategy-tree' },
+  { name: 'v2', html: v2Html, version: v2Version, marker: 'strategy-tree', foreignMarker: 'classic' },
 ];
 
 for (const build of builds) {
@@ -53,9 +53,9 @@ for (const build of builds) {
 
 function verifySingleFile(html: string, variant: string): void {
   const forbiddenPatterns: Array<[RegExp, string]> = [
-    [/<script\b[^>]*\bsrc\s*=/i, "внешний script"],
-    [/sourceMappingURL=/i, "ссылку на sourcemap"],
-    [/\/src\/main\.ts/i, "ссылку на исходный entrypoint"]
+    [/<script\b[^>]*\bsrc\s*=/i, 'внешний script'],
+    [/sourceMappingURL=/i, 'ссылку на sourcemap'],
+    [/\/src\/main\.ts/i, 'ссылку на исходный entrypoint'],
   ];
   for (const [pattern, description] of forbiddenPatterns) {
     if (pattern.test(html)) throw new Error(`Сборка ${variant} содержит ${description}.`);
@@ -67,7 +67,7 @@ function verifySingleFile(html: string, variant: string): void {
   if (!html.includes('http-equiv="Content-Security-Policy"')) {
     throw new Error(`Сборка ${variant} не содержит Content Security Policy.`);
   }
-  if (html.includes("__AIRIN_CSP__") || html.includes("'unsafe-inline'")) {
+  if (html.includes('__AIRIN_CSP__') || html.includes("'unsafe-inline'")) {
     throw new Error(`Сборка ${variant} содержит небезопасную или незавершённую Content Security Policy.`);
   }
   if (!html.includes('<meta name="referrer" content="no-referrer">')) {
@@ -76,22 +76,22 @@ function verifySingleFile(html: string, variant: string): void {
   if (
     !html.includes('<meta name="color-scheme" content="light dark">') ||
     !html.includes('<meta name="theme-color"') ||
-    !html.includes("airin-play-theme")
+    !html.includes('airin-play-theme')
   ) {
     throw new Error(`Сборка ${variant} не содержит полную настройку цветовой темы.`);
   }
 }
-verifySingleFile(v1Html, "v1");
-verifySingleFile(v2Html, "v2");
+verifySingleFile(v1Html, 'v1');
+verifySingleFile(v2Html, 'v2');
 
 await rm(dist, { recursive: true, force: true });
-await mkdir(resolve(dist, "v1"), { recursive: true });
-await mkdir(resolve(dist, "v2"), { recursive: true });
-await writeFile(resolve(dist, "v1/index.html"), v1Html, "utf8");
-await writeFile(resolve(dist, "v2/index.html"), v2Html, "utf8");
-await writeFile(resolve(dist, ".nojekyll"), "", "utf8");
+await mkdir(resolve(dist, 'v1'), { recursive: true });
+await mkdir(resolve(dist, 'v2'), { recursive: true });
+await writeFile(resolve(dist, 'v1/index.html'), v1Html, 'utf8');
+await writeFile(resolve(dist, 'v2/index.html'), v2Html, 'utf8');
+await writeFile(resolve(dist, '.nojekyll'), '', 'utf8');
 await writeFile(
-  resolve(dist, "index.html"),
+  resolve(dist, 'index.html'),
   `<!doctype html>
 <html lang="ru">
   <head>
@@ -105,7 +105,7 @@ await writeFile(
   <body><p><a href="./v2/">Открыть актуальную версию Суфлёра</a></p></body>
 </html>
 `,
-  "utf8"
+  'utf8',
 );
 
-console.log("Собрано: dist/v1/index.html и dist/v2/index.html");
+console.log('Собрано: dist/v1/index.html и dist/v2/index.html');

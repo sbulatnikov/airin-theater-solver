@@ -1,5 +1,5 @@
 <script setup lang="ts">
-defineProps<{ theme: "dark" | "light" }>();
+defineProps<{ theme: 'dark' | 'light' }>();
 defineEmits<{ toggle: [] }>();
 </script>
 

@@ -13,12 +13,12 @@ export interface CandidateTag {
 
 export function parseStableRelease(release: string): StableRelease {
   const match = release?.match(stableReleasePattern);
-  if (!match) throw new Error(`Некорректная стабильная версия: ${release ?? "не указана"}.`);
+  if (!match) throw new Error(`Некорректная стабильная версия: ${release ?? 'не указана'}.`);
 
   return {
     year: Number(match[1]),
     minor: Number(match[2]),
-    patch: match[3] === undefined ? undefined : Number(match[3])
+    patch: match[3] === undefined ? undefined : Number(match[3]),
   };
 }
 
@@ -46,12 +46,12 @@ export function isNextFeatureRelease(currentRelease: string, proposedRelease: st
 
 export function packageVersionFor(release: string): string {
   parseStableRelease(release);
-  return release.split(".").length === 2 ? `${release}.0` : release;
+  return release.split('.').length === 2 ? `${release}.0` : release;
 }
 
 export function stableReleaseForPackageVersion(packageVersion: string): string {
   const match = packageVersion?.match(/^(20\d{2})\.([1-9]\d*)\.(\d+)$/);
-  if (!match) throw new Error(`Некорректная версия package.json: ${packageVersion ?? "не указана"}.`);
+  if (!match) throw new Error(`Некорректная версия package.json: ${packageVersion ?? 'не указана'}.`);
 
   const [, year, minor, patch] = match;
   return Number(patch) === 0 ? `${year}.${minor}` : `${year}.${minor}.${patch}`;
@@ -62,7 +62,7 @@ export function nextMainRelease(currentRelease: string, packageVersion: string):
   const hotfixRelease = nextHotfixRelease(currentRelease);
   if (proposedRelease !== hotfixRelease && !isNextFeatureRelease(currentRelease, proposedRelease)) {
     throw new Error(
-      `После ${currentRelease} main может выпустить только следующий функциональный релиз или ${hotfixRelease}, но package.json задаёт ${proposedRelease}.`
+      `После ${currentRelease} main может выпустить только следующий функциональный релиз или ${hotfixRelease}, но package.json задаёт ${proposedRelease}.`,
     );
   }
   return proposedRelease;

@@ -1,27 +1,27 @@
-import { readFile } from "node:fs/promises";
-import { resolve } from "node:path";
-import { pathToFileURL } from "node:url";
+import { readFile } from 'node:fs/promises';
+import { resolve } from 'node:path';
+import { pathToFileURL } from 'node:url';
 import {
   isNextFeatureRelease,
   packageVersionFor,
   parseCandidateTag,
   parseStableRelease,
-  stableReleaseForPackageVersion
-} from "./release-version.ts";
+  stableReleaseForPackageVersion,
+} from './release-version.ts';
 
 export async function verifyReleaseTag(tag: string): Promise<string> {
   const candidate = parseCandidateTag(tag);
-  const root = resolve(import.meta.dirname, "..");
-  const manifest = JSON.parse(await readFile(resolve(root, "package.json"), "utf8"));
+  const root = resolve(import.meta.dirname, '..');
+  const manifest = JSON.parse(await readFile(resolve(root, 'package.json'), 'utf8'));
   const manifestRelease = stableReleaseForPackageVersion(manifest.version);
   let release = manifestRelease;
 
   try {
-    if (!tag) throw new Error("Тег не указан.");
+    if (!tag) throw new Error('Тег не указан.');
     if (candidate) {
       if (!isNextFeatureRelease(candidate.baseRelease, manifestRelease)) {
         throw new Error(
-          `Версия ${manifestRelease} не является следующим функциональным релизом после ${candidate.baseRelease}.`
+          `Версия ${manifestRelease} не является следующим функциональным релизом после ${candidate.baseRelease}.`,
         );
       }
     } else {
@@ -29,7 +29,7 @@ export async function verifyReleaseTag(tag: string): Promise<string> {
       release = tag;
     }
   } catch {
-    throw new Error(`Некорректный релизный тег: ${tag || "не указан"}.`);
+    throw new Error(`Некорректный релизный тег: ${tag || 'не указан'}.`);
   }
 
   const expectedPackageVersion = packageVersionFor(release);
