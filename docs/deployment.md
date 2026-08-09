@@ -6,7 +6,7 @@
 pnpm build
 ```
 
-Vite отдельно собирает `apps/v1` и `apps/v2`. Плагин single-file встраивает JavaScript и CSS внутрь HTML, после чего `scripts/assemble-dist.mjs` формирует:
+Vite отдельно собирает `apps/v1` и `apps/v2`. Плагин single-file встраивает JavaScript и CSS внутрь HTML, после чего `scripts/assemble-dist.ts` формирует:
 
 - `dist/v1/index.html`;
 - `dist/v2/index.html`;
@@ -24,11 +24,11 @@ Workflow `.github/workflows/release.yml` запускается только п�
 2. checkout созданного тега, установка pnpm, Node.js 24 и зависимостей;
 3. production-сборка `dist`;
 4. упаковка того же `dist` в архив GitHub Release;
-5. публикация GitHub Release с `CHANGES.md` и SHA-256;
+5. генерация текущего `RELEASE_NOTES.md` по PR/contributor и публикация GitHub Release с SHA-256;
 6. загрузка `dist` как Pages artifact и его публикация в environment `github-pages`.
 
-Тесты не повторяются после merge: обязательный check `Checks` уже выполнил Biome, TypeScript, unit-тесты,
-production build и Playwright E2E на точном head commit pull request. Каждый merge в `main` обязан изменить общую
+Тесты не повторяются после merge: Branch Rules уже потребовали успешные Biome, TypeScript, unit, production build и
+Playwright E2E jobs на точном head commit pull request. Каждый merge в `main` обязан изменить общую
 версию: следующий функциональный релиз или следующий patch hotfix. Иначе release pipeline остановится до создания тега.
 
 После первого push откройте **Settings → Pages** и выберите **Source: GitHub Actions**.

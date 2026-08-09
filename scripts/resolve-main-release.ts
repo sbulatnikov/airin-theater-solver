@@ -1,10 +1,10 @@
 import { readFile } from "node:fs/promises";
 import { resolve } from "node:path";
-import { nextMainRelease } from "./release-version.mjs";
+import { nextMainRelease } from "./release-version.ts";
 
 const [currentRelease] = process.argv.slice(2);
 if (!currentRelease) {
-  console.error("Использование: node scripts/resolve-main-release.mjs <current-release>");
+  console.error("Использование: tsx scripts/resolve-main-release.ts <current-release>");
   process.exit(1);
 }
 

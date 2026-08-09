@@ -92,7 +92,8 @@ pnpm version:set v2 2.3.0
 - [Локальная разработка](docs/development.md)
 - [Версионирование](docs/versioning.md)
 - [Релизы репозитория](docs/releases.md)
-- [Изменения релиза](CHANGES.md)
+- [История изменений](CHANGELOG.md)
+- [Ветки и Pull Requests](docs/branches.md)
 - [Диагностические снепшоты](docs/debug-snapshots.md)
 - [Сборка и GitHub Pages](docs/deployment.md)
 

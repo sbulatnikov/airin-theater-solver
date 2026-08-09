@@ -30,17 +30,10 @@ jobs:
         with:
           persist-credentials: false
 
-      - name: Install pnpm
-        uses: pnpm/action-setup@0ebf47130e4866e96fce0953f49152a61190b271 # v6.0.9
-
-      - name: Install Node.js
-        uses: actions/setup-node@249970729cb0ef3589644e2896645e5dc5ba9c38 # v6.5.0
-        with:
-          node-version: 24
-          cache: pnpm
-
       - name: Prime dependency cache
-        run: pnpm install --frozen-lockfile --ignore-scripts
+        uses: ./.github/actions/setup-workspace
+        with:
+          offline: "false"
 
   lint:
     name: Lint
@@ -54,15 +47,8 @@ jobs:
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           persist-credentials: false
-      - name: Install pnpm
-        uses: pnpm/action-setup@0ebf47130e4866e96fce0953f49152a61190b271 # v6.0.9
-      - name: Install Node.js
-        uses: actions/setup-node@249970729cb0ef3589644e2896645e5dc5ba9c38 # v6.5.0
-        with:
-          node-version: 24
-          cache: pnpm
-      - name: Restore dependencies
-        run: pnpm install --offline --frozen-lockfile --ignore-scripts
+      - name: Restore workspace
+        uses: ./.github/actions/setup-workspace
       - name: Biome lint and formatting
         run: pnpm check
 
@@ -78,15 +64,8 @@ jobs:
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           persist-credentials: false
-      - name: Install pnpm
-        uses: pnpm/action-setup@0ebf47130e4866e96fce0953f49152a61190b271 # v6.0.9
-      - name: Install Node.js
-        uses: actions/setup-node@249970729cb0ef3589644e2896645e5dc5ba9c38 # v6.5.0
-        with:
-          node-version: 24
-          cache: pnpm
-      - name: Restore dependencies
-        run: pnpm install --offline --frozen-lockfile --ignore-scripts
+      - name: Restore workspace
+        uses: ./.github/actions/setup-workspace
       - name: TypeScript and Vue
         run: pnpm typecheck
 
@@ -102,15 +81,8 @@ jobs:
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           persist-credentials: false
-      - name: Install pnpm
-        uses: pnpm/action-setup@0ebf47130e4866e96fce0953f49152a61190b271 # v6.0.9
-      - name: Install Node.js
-        uses: actions/setup-node@249970729cb0ef3589644e2896645e5dc5ba9c38 # v6.5.0
-        with:
-          node-version: 24
-          cache: pnpm
-      - name: Restore dependencies
-        run: pnpm install --offline --frozen-lockfile --ignore-scripts
+      - name: Restore workspace
+        uses: ./.github/actions/setup-workspace
       - name: Vitest
         run: pnpm test:unit
 
@@ -126,15 +98,8 @@ jobs:
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           persist-credentials: false
-      - name: Install pnpm
-        uses: pnpm/action-setup@0ebf47130e4866e96fce0953f49152a61190b271 # v6.0.9
-      - name: Install Node.js
-        uses: actions/setup-node@249970729cb0ef3589644e2896645e5dc5ba9c38 # v6.5.0
-        with:
-          node-version: 24
-          cache: pnpm
-      - name: Restore dependencies
-        run: pnpm install --offline --frozen-lockfile --ignore-scripts
+      - name: Restore workspace
+        uses: ./.github/actions/setup-workspace
       - name: Production build contracts
         run: pnpm build
 
@@ -150,37 +115,11 @@ jobs:
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           persist-credentials: false
-      - name: Install pnpm
-        uses: pnpm/action-setup@0ebf47130e4866e96fce0953f49152a61190b271 # v6.0.9
-      - name: Install Node.js
-        uses: actions/setup-node@249970729cb0ef3589644e2896645e5dc5ba9c38 # v6.5.0
-        with:
-          node-version: 24
-          cache: pnpm
-      - name: Restore dependencies
-        run: pnpm install --offline --frozen-lockfile --ignore-scripts
+      - name: Restore workspace
+        uses: ./.github/actions/setup-workspace
       - name: Build application for E2E
         run: pnpm build
       - name: Install Playwright Chromium
         run: pnpm exec playwright install --with-deps chromium
       - name: Playwright
         run: pnpm test:e2e
-
-  checks:
-    name: Checks
-    if: always()
-    needs: [lint, typecheck, unit, build, e2e]
-    runs-on: ubuntu-24.04
-    timeout-minutes: 1
-    steps:
-      - name: Require every parallel check
-        shell: bash
-        run: |
-          if [[ "${{ needs.lint.result }}" != "success" || \
-                "${{ needs.typecheck.result }}" != "success" || \
-                "${{ needs.unit.result }}" != "success" || \
-                "${{ needs.build.result }}" != "success" || \
-                "${{ needs.e2e.result }}" != "success" ]]; then
-            echo "At least one required check failed or was cancelled." >&2
-            exit 1
-          fi

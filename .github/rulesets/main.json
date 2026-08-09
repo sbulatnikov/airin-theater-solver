@@ -26,7 +26,19 @@
         "do_not_enforce_on_create": true,
         "required_status_checks": [
           {
-            "context": "Checks"
+            "context": "Lint"
+          },
+          {
+            "context": "Typecheck"
+          },
+          {
+            "context": "Unit tests"
+          },
+          {
+            "context": "Build"
+          },
+          {
+            "context": "E2E tests"
           }
         ],
         "strict_required_status_checks_policy": true

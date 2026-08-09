@@ -1,0 +1,29 @@
+name: Setup pnpm workspace
+description: Install Node.js, pnpm and workspace dependencies with the shared pnpm store cache
+
+inputs:
+  offline:
+    description: Require dependencies to be restored without registry access
+    default: "true"
+
+runs:
+  using: composite
+  steps:
+    - name: Install pnpm
+      uses: pnpm/action-setup@0ebf47130e4866e96fce0953f49152a61190b271 # v6.0.9
+
+    - name: Install Node.js
+      uses: actions/setup-node@249970729cb0ef3589644e2896645e5dc5ba9c38 # v6.5.0
+      with:
+        node-version: 24
+        cache: pnpm
+
+    - name: Install dependencies
+      if: inputs.offline != 'true'
+      shell: bash
+      run: pnpm install --frozen-lockfile --ignore-scripts
+
+    - name: Restore dependencies
+      if: inputs.offline == 'true'
+      shell: bash
+      run: pnpm install --offline --frozen-lockfile --ignore-scripts

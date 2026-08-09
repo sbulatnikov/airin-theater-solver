@@ -1,0 +1,46 @@
+name: Prepare Release Candidate
+
+on:
+  workflow_run:
+    workflows: [CI]
+    types: [completed]
+    branches:
+      - "rc/**"
+
+permissions: {}
+
+concurrency:
+  group: rc-freeze-${{ github.event.workflow_run.head_branch }}
+  cancel-in-progress: true
+
+jobs:
+  freeze:
+    name: Code Freeze
+    if: github.event.workflow_run.event == 'push' && github.event.workflow_run.conclusion == 'success'
+    environment:
+      name: release-freeze
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    permissions:
+      contents: write
+      pull-requests: read
+    steps:
+      - name: Checkout candidate
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          fetch-depth: 0
+          persist-credentials: false
+          ref: ${{ github.event.workflow_run.head_sha }}
+
+      - name: Setup workspace
+        uses: ./.github/actions/setup-workspace
+        with:
+          offline: "false"
+
+      - name: Freeze candidate
+        run: pnpm exec tsx scripts/release/freeze-rc.ts
+        env:
+          GITHUB_TOKEN: ${{ github.token }}
+          RC_BRANCH: ${{ github.event.workflow_run.head_branch }}
+          RC_SHA: ${{ github.event.workflow_run.head_sha }}
+          REPOSITORY_ADMIN_TOKEN: ${{ secrets.REPOSITORY_ADMIN_TOKEN }}

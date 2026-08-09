@@ -5,12 +5,12 @@ import { resolve } from "node:path";
 const root = resolve(import.meta.dirname, "..");
 const dist = resolve(root, "dist");
 
-function contentHashes(html, element) {
+function contentHashes(html: string, element: string): string[] {
   const matches = html.matchAll(new RegExp(`<${element}\\b[^>]*>([\\s\\S]*?)<\\/${element}>`, "gi"));
   return [...matches].map((match) => `'sha256-${createHash("sha256").update(match[1]).digest("base64")}'`);
 }
 
-function applyContentSecurityPolicy(html, variant) {
+function applyContentSecurityPolicy(html: string, variant: string): string {
   const scriptHashes = contentHashes(html, "script");
   const styleHashes = contentHashes(html, "style");
   if (scriptHashes.length === 0 || styleHashes.length === 0) {
@@ -51,8 +51,8 @@ for (const build of builds) {
   }
 }
 
-function verifySingleFile(html, variant) {
-  const forbiddenPatterns = [
+function verifySingleFile(html: string, variant: string): void {
+  const forbiddenPatterns: Array<[RegExp, string]> = [
     [/<script\b[^>]*\bsrc\s*=/i, "внешний script"],
     [/sourceMappingURL=/i, "ссылку на sourcemap"],
     [/\/src\/main\.ts/i, "ссылку на исходный entrypoint"]

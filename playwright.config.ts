@@ -17,7 +17,7 @@ export default defineConfig({
   },
   projects: [{ name: "chromium", use: { browserName: "chromium" } }],
   webServer: {
-    command: "node scripts/serve-dist.mjs",
+    command: "tsx scripts/serve-dist.ts",
     url: "http://127.0.0.1:4173/v2/",
     reuseExistingServer: !isCI,
     timeout: 30_000

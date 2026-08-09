@@ -1,5 +1,6 @@
 import { describe, expect, it } from "vitest";
 import {
+  isNextFeatureRelease,
   nextFeatureRelease,
   nextHotfixRelease,
   nextMainRelease,
@@ -7,12 +8,19 @@ import {
   parseCandidateTag,
   parseStableRelease,
   stableReleaseForPackageVersion
-} from "../../scripts/release-version.mjs";
+} from "../../scripts/release-version.ts";
 
 describe("repository release versions", () => {
   it("increments minor for a feature release and drops an existing patch", () => {
-    expect(nextFeatureRelease("2026.1")).toBe("2026.2");
-    expect(nextFeatureRelease("2026.1.4")).toBe("2026.2");
+    expect(nextFeatureRelease("2026.1", 2026)).toBe("2026.2");
+    expect(nextFeatureRelease("2026.1.4", 2026)).toBe("2026.2");
+  });
+
+  it("starts release numbering from one when the calendar year changes", () => {
+    expect(nextFeatureRelease("2026.4", 2027)).toBe("2027.1");
+    expect(isNextFeatureRelease("2026.4", "2027.1")).toBe(true);
+    expect(isNextFeatureRelease("2026.4", "2027.2")).toBe(false);
+    expect(nextMainRelease("2026.4", "2027.1.0")).toBe("2027.1");
   });
 
   it("increments only patch for a hotfix", () => {

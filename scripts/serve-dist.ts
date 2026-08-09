@@ -5,14 +5,14 @@ import { extname, resolve, sep } from "node:path";
 const root = resolve(import.meta.dirname, "../dist");
 const host = "127.0.0.1";
 const port = 4173;
-const contentTypes = {
+const contentTypes: Record<string, string> = {
   ".css": "text/css; charset=utf-8",
   ".html": "text/html; charset=utf-8",
   ".js": "text/javascript; charset=utf-8",
   ".json": "application/json; charset=utf-8"
 };
 
-function resolveRequestPath(rawUrl) {
+function resolveRequestPath(rawUrl: string | undefined): string | null {
   const url = new URL(rawUrl ?? "/", `http://${host}:${port}`);
   const decodedPath = decodeURIComponent(url.pathname);
   const relativePath = decodedPath.endsWith("/") ? `${decodedPath}index.html` : decodedPath;

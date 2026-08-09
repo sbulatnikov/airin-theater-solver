@@ -22,7 +22,7 @@ flowchart LR
   UI --> SHARED
 ```
 
-Связей `apps/v1 → core/v2` и `apps/v2 → core/v1` нет. Скрипт `scripts/assemble-dist.mjs` дополнительно проверяет версию и уникальный маркер поколения в каждом итоговом HTML. Проверка не зависит от того, различаются ли номера версий v1 и v2.
+Связей `apps/v1 → core/v2` и `apps/v2 → core/v1` нет. Скрипт `scripts/assemble-dist.ts` дополнительно проверяет версию и уникальный маркер поколения в каждом итоговом HTML. Проверка не зависит от того, различаются ли номера версий v1 и v2.
 
 ## Пакеты
 
@@ -52,4 +52,4 @@ flowchart LR
 
 ## Сборка
 
-Каждое приложение Vite собирает отдельно. `vite-plugin-singlefile` встраивает Vue runtime, JavaScript и CSS в один HTML. Затем `scripts/assemble-dist.mjs` формирует структуру `dist/v1` и `dist/v2`.
+Каждое приложение Vite собирает отдельно. `vite-plugin-singlefile` встраивает Vue runtime, JavaScript и CSS в один HTML. Затем `scripts/assemble-dist.ts` формирует структуру `dist/v1` и `dist/v2`.
