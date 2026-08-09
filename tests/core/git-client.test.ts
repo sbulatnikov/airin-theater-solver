@@ -42,6 +42,36 @@ describe('GitClient', () => {
     expect(transport.commands).toEqual([['tag', '--annotate', '2026.2', 'commit-sha', '--message', 'Release 2026.2']]);
     expect(transport.pushes).toEqual([['https://github.com/owner/repository.git', 'refs/tags/2026.2']]);
   });
+
+  it('stages release files, commits with the bot identity, and pushes main safely', () => {
+    const transport = new RecordingTransport();
+    const git = new GitClient(transport, {
+      pushRemote: 'https://github.com/owner/repository.git',
+      tagger: { name: 'release-bot', email: 'release@example.com' },
+    });
+
+    git.stage(['CHANGELOG.md', 'README.md', 'package.json']);
+    git.commit({
+      author: 'release-bot <release@example.com>',
+      subject: 'chore(release): prepare 2026.2',
+      body: 'Release-Notes: skip',
+    });
+    git.pushBranch('main');
+
+    expect(transport.commands).toEqual([
+      ['add', '--', 'CHANGELOG.md', 'README.md', 'package.json'],
+      [
+        'commit',
+        '--author=release-bot <release@example.com>',
+        '--message',
+        'chore(release): prepare 2026.2',
+        '--message',
+        'Release-Notes: skip',
+      ],
+      ['check-ref-format', '--branch', 'main'],
+    ]);
+    expect(transport.pushes).toEqual([['https://github.com/owner/repository.git', 'HEAD:refs/heads/main']]);
+  });
 });
 
 describe('GitCliTransport', () => {

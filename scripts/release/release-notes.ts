@@ -1,5 +1,6 @@
 import type { GitClient } from '../shared/git.ts';
 import type { GithubPullRequest } from '../shared/github.ts';
+import { releaseKindForBranches } from './release-policy.ts';
 
 export interface ReleaseCommit {
   sha: string;
@@ -88,6 +89,10 @@ export function formatReleaseNotes(changes: ReleaseChange[], repository: string)
   return `# Change Log\n\n${lines.join('\n')}\n`;
 }
 
+export function includesReleaseNotes(pullRequest: GithubPullRequest): boolean {
+  return releaseKindForBranches([pullRequest.head.ref]) !== 'none';
+}
+
 export async function generateReleaseNotes(
   previousTag: string,
   target: string,
@@ -96,13 +101,15 @@ export async function generateReleaseNotes(
 ): Promise<string> {
   const output = git.log(`${previousTag}..${target}`, releaseLogFormat, true);
   const commits = parseReleaseLog(output).filter((commit) => !skipsReleaseNotes(commit));
-  const changes = await Promise.all(
-    commits.map(
-      async (commit): Promise<ReleaseChange> => ({
-        commit,
-        pullRequest: await resolvePullRequest(commit, github),
-      }),
-    ),
-  );
+  const changes = (
+    await Promise.all(
+      commits.map(
+        async (commit): Promise<ReleaseChange> => ({
+          commit,
+          pullRequest: await resolvePullRequest(commit, github),
+        }),
+      ),
+    )
+  ).filter(({ pullRequest }) => includesReleaseNotes(pullRequest));
   return formatReleaseNotes(changes, github.repository);
 }
