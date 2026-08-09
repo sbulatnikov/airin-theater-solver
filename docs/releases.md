@@ -76,7 +76,8 @@ GitHub Release получает `RELEASE_NOTES.md` как body. В его assets
 
 ## Правила GitHub
 
-- `main` принимает изменения только через PR с approval, разрешёнными review threads, шестью checks и линейной историей;
+- `main` принимает изменения только через PR, с разрешёнными review threads, шестью checks и линейной историей;
+- пока у репозитория один maintainer, чужой approval не обязателен; после появления второго maintainer его следует включить;
 - force push и удаление `main` запрещены;
 - существующие tags нельзя переносить или удалять;
 - merge commits отключены; рабочие и hotfix PR используют squash, RC PR — rebase merge;
