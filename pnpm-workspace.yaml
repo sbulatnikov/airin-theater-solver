@@ -7,7 +7,7 @@ allowBuilds:
   esbuild: false
 
 catalog:
-  "@biomejs/biome": 2.5.6
+  "@biomejs/biome": 2.5.7
   "@types/node": ^24.13.3
   "@vitejs/plugin-vue": ^6.0.8
   typescript: ^6.0.3
