@@ -1,9 +1,11 @@
 <script setup lang="ts">
 import {
   type AnalysisResult,
+  type CalculatedTurn,
   isStrategySolverEngine,
   type SolverEngine,
   type TurnInput,
+  type TurnOutcome,
   type TurnType,
 } from '@airin-play/core/shared';
 import { computed, nextTick, onBeforeUnmount, onMounted, reactive, ref } from 'vue';
@@ -22,12 +24,15 @@ const state = reactive<{ started: boolean; mode: TurnType; turns: TurnInput[]; s
 });
 const optionsInput = ref('');
 const resultInput = ref('');
+const aiInput = ref('');
 const optionsError = ref('');
 const resultError = ref('');
+const aiError = ref('');
 const analyzedOptions = ref<AnalysisResult[]>([]);
 const debugDownloaded = ref(false);
 const optionsElement = ref<HTMLInputElement | null>(null);
 const resultElement = ref<HTMLInputElement | null>(null);
+const aiElement = ref<HTMLInputElement | null>(null);
 
 type Theme = 'dark' | 'light';
 const THEME_STORAGE_KEY = 'airin-play-theme';
@@ -161,15 +166,24 @@ function handleResultInput(event: Event): void {
   resultInput.value = engine.sanitizeReplyInput((event.target as HTMLInputElement).value);
   resultError.value = '';
 }
-function addTurn(reply: string, type: TurnType): void {
-  if (finished.value) return;
-  state.turns.push({ reply, type });
+function handleAiInput(event: Event): void {
+  aiInput.value = engine.sanitizeReplyInput((event.target as HTMLInputElement).value);
+  aiError.value = '';
+}
+function clearTurnInputs(): void {
   state.selectedQuickOptions = [];
   optionsInput.value = '';
   resultInput.value = '';
+  aiInput.value = '';
   optionsError.value = '';
   resultError.value = '';
+  aiError.value = '';
   hideRecommendations();
+}
+function addTurn(reply: string, type: TurnType, outcome: TurnOutcome = 'player'): void {
+  if (finished.value) return;
+  state.turns.push({ reply, type, outcome });
+  clearTurnInputs();
   void nextTick(() => (state.mode === 'controlled' ? optionsElement.value : resultElement.value)?.focus());
 }
 function handleAnonymousRecord(): void {
@@ -180,6 +194,25 @@ function handleAnonymousRecord(): void {
   }
   addTurn(parsed.value, 'anonymous');
 }
+function handleAiRecord(): void {
+  const parsed = engine.parseReply(aiInput.value);
+  if (!parsed.ok) {
+    aiError.value = parsed.error;
+    return;
+  }
+  addTurn(parsed.value, 'anonymous', 'ai');
+  void nextTick(() => aiElement.value?.focus());
+}
+function handleMissedRecord(): void {
+  if (finished.value) return;
+  const confirmed = window.confirm(
+    'Записать непрознесённую реплику? Ход будет потрачен, восторг снизится на 1, но не ниже 0. Цветовые очки не изменятся.',
+  );
+  if (!confirmed) return;
+  state.turns.push({ type: state.mode, outcome: 'missed' });
+  clearTurnInputs();
+  void nextTick(() => (state.mode === 'controlled' ? optionsElement.value : resultElement.value)?.focus());
+}
 function toggleQuickOption(reply: string): void {
   const index = state.selectedQuickOptions.indexOf(reply);
   if (index >= 0) state.selectedQuickOptions.splice(index, 1);
@@ -189,10 +222,7 @@ function toggleQuickOption(reply: string): void {
 }
 function undo(): void {
   state.turns.pop();
-  state.selectedQuickOptions = [];
-  optionsError.value = '';
-  resultError.value = '';
-  hideRecommendations();
+  clearTurnInputs();
 }
 function resetGame(skipConfirmation = false): void {
   if (
@@ -202,12 +232,7 @@ function resetGame(skipConfirmation = false): void {
   )
     return;
   state.turns.splice(0);
-  state.selectedQuickOptions = [];
-  optionsInput.value = '';
-  resultInput.value = '';
-  optionsError.value = '';
-  resultError.value = '';
-  hideRecommendations();
+  clearTurnInputs();
   setMode('controlled');
 }
 function startGame(): void {
@@ -217,6 +242,21 @@ function startGame(): void {
 function formatGainDetails(result: AnalysisResult): string[] {
   if (state.turns.length === 0) return ['Первая реплика', '+0 восторга'];
   return [`Общий цвет +${result.shared}`, `Баланс +${result.balance}`];
+}
+function formatSignedGain(gain: number): string {
+  if (gain > 0) return `+${gain}`;
+  if (gain < 0) return `−${Math.abs(gain)}`;
+  return '0';
+}
+function historyTitle(turn: CalculatedTurn): string {
+  if (turn.outcome === 'ai') return 'ход ИИ';
+  if (turn.outcome === 'missed') return 'реплика не произнесена';
+  return turn.type === 'anonymous' ? 'только выбор' : 'три варианта';
+}
+function historyDetails(turn: CalculatedTurn): string {
+  if (turn.outcome === 'ai') return 'цвета +2 · восторг 0';
+  if (turn.outcome === 'missed') return `цвета +0 · восторг ${formatSignedGain(turn.gain)}`;
+  return turn.number === 1 ? 'первая реплика' : `общий цвет +${turn.shared} · баланс +${turn.balance}`;
 }
 function compactResult(result: AnalysisResult) {
   return {
@@ -245,7 +285,7 @@ function buildDebugPayload() {
   const summedAudience = calculated.value.calculatedTurns.reduce((total, turn) => total + turn.gain, 0);
   return {
     schema: 'airin-play-debug-snapshot',
-    schemaVersion: '1.1.0',
+    schemaVersion: '1.2.0',
     encoding: 'base64(utf8-json)',
     application: {
       name: 'Суфлёр',
@@ -273,6 +313,13 @@ function buildDebugPayload() {
       tripleEqualityBonus: 2,
       minimumEqualityValue: 2,
       equalityMustTouchCurrentReply: true,
+      turnOutcomes: ['player', 'ai', 'missed'],
+      aiAudienceGain: 0,
+      missedColorGain: 0,
+      missedAudiencePenalty: 1,
+      minimumAudience: 0,
+      missedKeepsPreviousReply: true,
+      predictAiReplies: false,
     },
     session: {
       started: state.started,
@@ -398,7 +445,7 @@ onBeforeUnmount(() => colorSchemeQuery.removeEventListener('change', handleSyste
 
       <section class="progress-panel" aria-label="Прогресс пьесы">
         <p class="sr-only" role="status" aria-live="polite">
-          Восторг зала: {{ calculated.audience }} из {{ engine.targetScore }}. Выполнено реплик:
+          Восторг зала: {{ calculated.audience }} из {{ engine.targetScore }}. Выполнено ходов:
           {{ state.turns.length }}
           из {{ engine.totalTurns }}.
         </p>
@@ -409,7 +456,7 @@ onBeforeUnmount(() => colorSchemeQuery.removeEventListener('change', handleSyste
         <div class="progress-track-wrap">
           <div class="progress-labels">
             <span>Восторг зала</span
-            ><strong>{{ finished ? "Пьеса завершена" : `Реплика ${currentTurn} из ${engine.totalTurns}` }}</strong>
+            ><strong>{{ finished ? "Пьеса завершена" : `Ход ${currentTurn} из ${engine.totalTurns}` }}</strong>
           </div>
           <ol class="turn-track" aria-hidden="true">
             <li
@@ -508,8 +555,8 @@ onBeforeUnmount(() => colorSchemeQuery.removeEventListener('change', handleSyste
               </li>
             </ol>
             <p class="route-note">
-              Будущие варианты неизвестны, поэтому маршрут обновляется после каждого хода. Возможный итог:
-              {{ idealRoute.finalAudience }}.
+              Маршрут учитывает только управляемые реплики и обновляется после фактических ходов ИИ. Возможный итог:
+              {{ idealRoute.finalAudience }}. Реплики ИИ не прогнозируются.
             </p>
           </section>
 
@@ -659,6 +706,53 @@ onBeforeUnmount(() => colorSchemeQuery.removeEventListener('change', handleSyste
             <p id="resultError" class="error-message" role="alert">{{ resultError }}</p>
           </div>
 
+          <section class="special-turns" aria-labelledby="specialTurnsTitle">
+            <div class="special-turns-heading">
+              <h3 id="specialTurnsTitle">Особый исход хода</h3>
+              <p>Запишите фактический ход ИИ или непрознесённую реплику.</p>
+            </div>
+            <div class="special-turn-grid">
+              <div class="special-turn-card">
+                <label class="field-label" for="aiInput">Какую реплику выбрал ИИ?</label>
+                <div class="input-row">
+                  <input
+                    id="aiInput"
+                    ref="aiElement"
+                    :value="aiInput"
+                    class="reply-input"
+                    :class="{ 'is-invalid': aiError }"
+                    type="text"
+                    maxlength="2"
+                    :aria-invalid="Boolean(aiError)"
+                    aria-describedby="aiHelp aiError"
+                    autocomplete="off"
+                    spellcheck="false"
+                    placeholder="КЗ"
+                    :disabled="finished"
+                    @input="handleAiInput"
+                    @keydown.enter.prevent="handleAiRecord"
+                  ><button class="primary-button" type="button" :disabled="finished" @click="handleAiRecord">
+                    Записать ход ИИ
+                  </button>
+                </div>
+                <p id="aiHelp" class="field-help">Цветовые очки увеличатся, восторг не изменится.</p>
+                <p id="aiError" class="error-message" role="alert">{{ aiError }}</p>
+              </div>
+              <div class="special-turn-card missed-turn-card">
+                <strong class="field-label">Реплика не была произнесена?</strong>
+                <p class="field-help">Ход будет потрачен, цвета не изменятся, восторг снизится на 1, но не ниже 0.</p>
+                <button
+                  class="secondary-button missed-turn-button"
+                  type="button"
+                  :disabled="finished"
+                  @click="handleMissedRecord"
+                >
+                  Реплика не произнесена
+                </button>
+              </div>
+            </div>
+          </section>
+
           <div
             v-if="finished"
             class="finish-banner is-visible"
@@ -667,7 +761,7 @@ onBeforeUnmount(() => colorSchemeQuery.removeEventListener('change', handleSyste
           >
             <h3>{{ finishWon ? "Браво! Цель достигнута" : "Занавес" }}</h3>
             <p>
-              {{ finishWon ? `Зал в восторге: ${calculated.audience} ${pluralizePoints(calculated.audience)} за ${engine.totalTurns} реплик.` : `Набрано ${calculated.audience} из ${engine.targetScore}. Можно отменить последний ход или начать новую пьесу.` }}
+              {{ finishWon ? `Зал в восторге: ${calculated.audience} ${pluralizePoints(calculated.audience)} за ${engine.totalTurns} ходов.` : `Набрано ${calculated.audience} из ${engine.targetScore}. Можно отменить последний ход или начать новую пьесу.` }}
             </p>
           </div>
         </section>
@@ -714,14 +808,14 @@ onBeforeUnmount(() => colorSchemeQuery.removeEventListener('change', handleSyste
                 class="history-item"
               >
                 <span class="history-number">{{ turn.number }}</span>
-                <ReplyChips class="history-reply" :reply="turn.reply" />
+                <ReplyChips v-if="turn.reply" class="history-reply" :reply="turn.reply" />
+                <span v-else class="history-missed-mark" aria-hidden="true">—</span>
                 <div class="history-meta">
-                  <strong>{{ turn.type === "anonymous" ? "только выбор" : "три варианта" }}</strong
-                  ><span
-                    >{{ turn.number === 1 ? "первая реплика" : `общий цвет +${turn.shared} · баланс +${turn.balance}` }}</span
-                  >
+                  <strong>{{ historyTitle(turn) }}</strong><span>{{ historyDetails(turn) }}</span>
                 </div>
-                <span class="history-gain">+{{ turn.gain }}</span>
+                <span class="history-gain" :class="{ 'is-negative': turn.gain < 0 }"
+                  >{{ formatSignedGain(turn.gain) }}</span
+                >
               </article>
             </div>
             <div class="history-actions">

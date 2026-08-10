@@ -34,10 +34,63 @@ test.describe('v2', () => {
     const snapshot = JSON.parse(Buffer.from(Buffer.concat(chunks).toString('ascii'), 'base64').toString('utf8'));
 
     expect(snapshot.schema).toBe('airin-play-debug-snapshot');
+    expect(snapshot.schemaVersion).toBe('1.2.0');
     expect(snapshot.application.variant).toBe('strategy-tree');
     expect(snapshot.session.turnCount).toBe(0);
+    expect(snapshot.rules.turnOutcomes).toEqual(['player', 'ai', 'missed']);
     expect(snapshot.environment.page).not.toContain('private');
     expect(snapshot.environment.page).not.toContain('fragment');
+  });
+
+  test('учитывает ход ИИ и подтверждённую непрознесённую реплику', async ({ page }) => {
+    await openSolver(page, '/v2/');
+
+    const aiInput = page.getByLabel('Какую реплику выбрал ИИ?');
+    await aiInput.fill('cc');
+    await page.getByRole('button', { name: 'Записать ход ИИ' }).click();
+    await expect(page.locator('.history-meta strong').first()).toHaveText('ход ИИ');
+    await expect(page.locator('.color-value')).toHaveText(['2', '0', '0']);
+    await expect(page.locator('.score-number')).toHaveText('0');
+
+    await page.getByRole('tab', { name: 'Вижу только выбор' }).click();
+    const playerInput = page.getByLabel('Какая реплика была выбрана?');
+    await playerInput.fill('СС');
+    await playerInput.press('Enter');
+    await expect(page.locator('.score-number')).toHaveText('1');
+
+    page.once('dialog', (dialog) => dialog.dismiss());
+    await page.getByRole('button', { name: 'Реплика не произнесена' }).click();
+    await expect(page.locator('.history-item')).toHaveCount(2);
+
+    page.once('dialog', (dialog) => dialog.accept());
+    await page.getByRole('button', { name: 'Реплика не произнесена' }).click();
+    await expect(page.locator('.history-item')).toHaveCount(3);
+    await expect(page.locator('.history-meta strong').first()).toHaveText('реплика не произнесена');
+    await expect(page.locator('.history-gain').first()).toHaveText('−1');
+    await expect(page.locator('.color-value')).toHaveText(['4', '0', '0']);
+    await expect(page.locator('.score-number')).toHaveText('0');
+
+    await playerInput.fill('СС');
+    await playerInput.press('Enter');
+    await expect(page.locator('.score-number')).toHaveText('1');
+    await expect(page.getByText('Предыдущая реплика').locator('..')).toContainText('СС');
+
+    const snapshot = await page.evaluate(() =>
+      (
+        window as unknown as {
+          AirinPlayDebug: {
+            buildDebugPayload(): {
+              calculations: { turns: Array<{ gain: number; reply: string | null }> };
+              integrity: Record<string, boolean>;
+              session: { turns: Array<{ outcome?: string }> };
+            };
+          };
+        }
+      ).AirinPlayDebug.buildDebugPayload(),
+    );
+    expect(snapshot.session.turns.map((turn) => turn.outcome)).toEqual(['ai', 'player', 'missed', 'player']);
+    expect(snapshot.calculations.turns[2]).toMatchObject({ reply: null, gain: -1 });
+    expect(Object.values(snapshot.integrity).every(Boolean)).toBe(true);
   });
 });
 
@@ -63,7 +116,7 @@ test('v2 рассчитывает рекомендацию после выбор
   await expect(page.locator('.option-card')).toHaveCount(3);
 });
 
-test('пьеса завершается ровно после 16 реплик', async ({ page }) => {
+test('пьеса завершается ровно после 16 ходов', async ({ page }) => {
   test.setTimeout(60_000);
   await openSolver(page, '/v2/');
   await page.getByRole('tab', { name: 'Вижу только выбор' }).click();
@@ -77,6 +130,8 @@ test('пьеса завершается ровно после 16 реплик', 
   await expect(page.locator('.score-number')).toHaveText('15');
   await expect(page.getByRole('heading', { name: 'Занавес' })).toBeVisible();
   await expect(input).toBeDisabled();
+  await expect(page.getByLabel('Какую реплику выбрал ИИ?')).toBeDisabled();
+  await expect(page.getByRole('button', { name: 'Реплика не произнесена' })).toBeDisabled();
 });
 
 test('тема следует системе и сохраняет ручной выбор', async ({ page }) => {

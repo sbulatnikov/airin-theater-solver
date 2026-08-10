@@ -1,4 +1,13 @@
-import type { AnalysisResult, ColorKey, GameCalculation, ParseResult, Scores, SolverEngine, TurnInput } from './types';
+import type {
+  AnalysisResult,
+  ColorKey,
+  GameCalculation,
+  ParseResult,
+  Scores,
+  SolverEngine,
+  TurnInput,
+  TurnOutcome,
+} from './types';
 
 export const TOTAL_TURNS = 16;
 export const TARGET_SCORE = 26;
@@ -99,6 +108,14 @@ export abstract class BaseEngine implements SolverEngine {
     }
   }
 
+  private requireOutcome(value: TurnInput['outcome'], index: number): TurnOutcome {
+    const outcome = value ?? 'player';
+    if (outcome !== 'player' && outcome !== 'ai' && outcome !== 'missed') {
+      throw new TypeError(`Ход ${index + 1}: неизвестный исход хода.`);
+    }
+    return outcome;
+  }
+
   public replyContribution(reply: string): Scores {
     const result = emptyScores();
     const first = COLOR_BY_LETTER[reply[0] as keyof typeof COLOR_BY_LETTER];
@@ -160,19 +177,41 @@ export abstract class BaseEngine implements SolverEngine {
     let audience = 0;
     let previous: string | null = null;
     const calculatedTurns = turns.map((turn, index) => {
-      const reply = this.requireReply(turn.reply, `Реплика ${index + 1}`);
+      const outcome = this.requireOutcome(turn.outcome, index);
+      if (outcome === 'missed') {
+        if (turn.reply !== undefined) {
+          throw new TypeError(`Ход ${index + 1}: для непрознесённой реплики нельзя указывать выбранную реплику.`);
+        }
+        const gain = audience > 0 ? -1 : 0;
+        audience += gain;
+        return {
+          ...turn,
+          reply: null,
+          outcome,
+          number: index + 1,
+          contribution: emptyScores(),
+          shared: 0,
+          balance: 0,
+          gain,
+          audienceAfter: audience,
+          scoresAfter: { ...scores },
+        };
+      }
+      const reply = this.requireReply(turn.reply ?? '', `Реплика ${index + 1}`);
       const result = this.transition(scores, previous, reply, index > 0);
       Object.assign(scores, result.scores);
-      audience += result.gain;
+      const gain = outcome === 'ai' ? 0 : result.gain;
+      audience += gain;
       previous = reply;
       return {
         ...turn,
         reply,
+        outcome,
         number: index + 1,
         contribution: result.contribution,
-        shared: result.shared,
-        balance: result.balance,
-        gain: result.gain,
+        shared: outcome === 'ai' ? 0 : result.shared,
+        balance: outcome === 'ai' ? 0 : result.balance,
+        gain,
         audienceAfter: audience,
         scoresAfter: { ...scores },
       };
@@ -180,22 +219,23 @@ export abstract class BaseEngine implements SolverEngine {
     return { scores, audience, previous, calculatedTurns };
   }
 
-  public bestFutureGain(scores: Scores, previousReply: string, turnsRemaining: number): number {
+  public bestFutureGain(scores: Scores, previousReply: string | null, turnsRemaining: number): number {
     if (!Number.isInteger(turnsRemaining) || turnsRemaining < 0 || turnsRemaining > this.totalTurns) {
       throw new RangeError(`Количество оставшихся ходов должно быть целым числом от 0 до ${this.totalTurns}.`);
     }
-    const normalizedPrevious = this.requireReply(previousReply, 'Предыдущая реплика');
+    const normalizedPrevious = previousReply === null ? null : this.requireReply(previousReply, 'Предыдущая реплика');
     return this.memoizedBestFutureGain(scores, normalizedPrevious, turnsRemaining);
   }
 
-  private memoizedBestFutureGain(scores: Scores, previousReply: string, turnsRemaining: number): number {
+  private memoizedBestFutureGain(scores: Scores, previousReply: string | null, turnsRemaining: number): number {
     if (turnsRemaining === 0) return 0;
-    const key = `${turnsRemaining}|${scores.blue},${scores.green},${scores.red}|${this.replySignature(previousReply)}`;
+    const previousKey = previousReply === null ? '-' : this.replySignature(previousReply);
+    const key = `${turnsRemaining}|${scores.blue},${scores.green},${scores.red}|${previousKey}`;
     const cached = this.strategyMemo.get(key);
     if (cached !== undefined) return cached;
     let best = 0;
     for (const reply of REPLY_TYPES) {
-      const result = this.transition(scores, previousReply, reply, true);
+      const result = this.transition(scores, previousReply, reply, previousReply !== null);
       best = Math.max(best, result.gain + this.memoizedBestFutureGain(result.scores, reply, turnsRemaining - 1));
     }
     this.strategyMemo.set(key, best);
@@ -208,7 +248,7 @@ export abstract class BaseEngine implements SolverEngine {
     const futureTurns = Math.max(0, TOTAL_TURNS - turns.length - 1);
     const results = options.map((option, optionIndex) => {
       const reply = this.requireReply(option, `Вариант ${optionIndex + 1}`);
-      const stateAfter = this.calculateState([...turns, { reply, type: 'controlled' }]);
+      const stateAfter = this.calculateState([...turns, { reply, type: 'controlled', outcome: 'player' }]);
       const calculatedTurn = stateAfter.calculatedTurns.at(-1);
       if (!calculatedTurn) throw new Error('Не удалось рассчитать добавленную реплику.');
       const projectedGain = calculatedTurn.gain + this.bestFutureGain(stateAfter.scores, reply, futureTurns);
