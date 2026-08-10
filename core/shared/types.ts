@@ -1,6 +1,7 @@
 export type ColorLetter = 'С' | 'З' | 'К';
 export type ColorKey = 'blue' | 'green' | 'red';
 export type TurnType = 'controlled' | 'anonymous';
+export type TurnOutcome = 'player' | 'ai' | 'missed';
 
 export interface Scores {
   blue: number;
@@ -9,11 +10,14 @@ export interface Scores {
 }
 
 export interface TurnInput {
-  reply: string;
+  reply?: string;
   type: TurnType;
+  outcome?: TurnOutcome;
 }
 
-export interface CalculatedTurn extends TurnInput {
+export interface CalculatedTurn extends Omit<TurnInput, 'reply' | 'outcome'> {
+  reply: string | null;
+  outcome: TurnOutcome;
   number: number;
   contribution: Scores;
   shared: number;
@@ -70,7 +74,7 @@ export interface SolverEngine {
   hasSharedColor(firstReply: string | null, secondReply: string): boolean;
   balanceBonus(scores: Scores, contribution: Scores): number;
   calculateState(turns?: readonly TurnInput[]): GameCalculation;
-  bestFutureGain(scores: Scores, previousReply: string, turnsRemaining: number): number;
+  bestFutureGain(scores: Scores, previousReply: string | null, turnsRemaining: number): number;
   analyzeOptions(turns: readonly TurnInput[], options: readonly string[]): AnalysisResult[];
   clearStrategyCache(): void;
 }

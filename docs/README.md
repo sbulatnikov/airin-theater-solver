@@ -4,6 +4,8 @@
 
 - [architecture.md](architecture.md) — границы пакетов и направление зависимостей;
 - [scoring.md](scoring.md) — известные правила мини-игры и примеры расчёта;
+- [turn-effects-requirements-and-test-runs.md](turn-effects-requirements-and-test-runs.md) — проект требований и
+  тест-ранов для ходов ИИ и непрознесённых реплик;
 - [development.md](development.md) — установка, команды и проверка изменений;
 - [branches.md](branches.md) — назначение веток, Pull Requests и сборка release candidate;
 - [versioning.md](versioning.md) — политика SemVer для двух поколений;

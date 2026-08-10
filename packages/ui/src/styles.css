@@ -672,6 +672,47 @@ p {
 .manual-entry .input-row {
   margin-top: 9px;
 }
+.special-turns {
+  border-top: 1px solid var(--line);
+  margin-top: clamp(20px, 1.1vw, 30px);
+  padding-top: clamp(18px, 1vw, 28px);
+}
+.special-turns-heading h3 {
+  margin: 0;
+  font: 800 clamp(18px, 0.65vw, 24px) / 1.2 var(--font-ui);
+}
+.special-turns-heading p {
+  color: var(--muted);
+  margin: 5px 0 0;
+  font-size: var(--text-small);
+}
+.special-turn-grid {
+  grid-template-columns: minmax(0, 1.35fr) minmax(220px, 0.65fr);
+  gap: clamp(10px, 0.6vw, 16px);
+  margin-top: clamp(12px, 0.7vw, 18px);
+  display: grid;
+}
+.special-turn-card {
+  border: 1px solid var(--line);
+  background: var(--surface-deep);
+  border-radius: 13px;
+  min-width: 0;
+  padding: clamp(14px, 0.8vw, 20px);
+}
+.special-turn-card .input-row .primary-button {
+  flex: none;
+  white-space: nowrap;
+}
+.missed-turn-card {
+  flex-direction: column;
+  display: flex;
+}
+.missed-turn-card .field-help {
+  margin-top: 0;
+}
+.missed-turn-button {
+  margin-top: auto;
+}
 .recommendation {
   border-top: 1px solid var(--line);
   margin-top: clamp(18px, 1vw, 28px);
@@ -864,6 +905,12 @@ p {
   height: clamp(22px, 0.75vw, 28px);
   font-size: var(--text-micro);
 }
+.history-missed-mark {
+  color: var(--muted);
+  text-align: center;
+  min-width: clamp(47px, 1.7vw, 61px);
+  font-size: var(--text-body);
+}
 .history-meta {
   flex-direction: column;
   min-width: 0;
@@ -883,6 +930,9 @@ p {
   color: var(--gold);
   font-size: var(--text-body);
   font-weight: 800;
+}
+.history-gain.is-negative {
+  color: var(--red);
 }
 .history-actions {
   margin-top: 10px;
@@ -1020,6 +1070,9 @@ p {
   .option-grid {
     grid-template-columns: 1fr;
   }
+  .special-turn-grid {
+    grid-template-columns: 1fr;
+  }
   .quick-option-grid {
     grid-template-columns: repeat(3, 1fr);
   }
@@ -1040,8 +1093,11 @@ p {
   .turn-panel > .route-panel {
     order: 4;
   }
-  .turn-panel > .finish-banner {
+  .turn-panel > .special-turns {
     order: 5;
+  }
+  .turn-panel > .finish-banner {
+    order: 6;
   }
   .route-panel {
     margin: 16px 0 0;

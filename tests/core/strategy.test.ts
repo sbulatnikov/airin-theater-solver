@@ -38,6 +38,18 @@ describe.each(engines)('%s: анализ доступных вариантов',
     expect(() => engine.clearStrategyCache()).not.toThrow();
     expect(engine.bestFutureGain({ blue: 2, green: 2, red: 2 }, 'СК', 3)).toBeGreaterThanOrEqual(0);
   });
+
+  it('строит следующий вариант от фактической реплики ИИ после пропуска', () => {
+    const history = [
+      { reply: 'СС', type: 'controlled' as const, outcome: 'player' as const },
+      { reply: 'КК', type: 'anonymous' as const, outcome: 'ai' as const },
+      { type: 'anonymous' as const, outcome: 'missed' as const },
+    ];
+    const [result] = engine.analyzeOptions(history, ['КК']);
+
+    expect(result).toMatchObject({ reply: 'КК', shared: 1, gain: 1 });
+    expect(result?.stateAfter.scores).toEqual({ blue: 2, green: 0, red: 4 });
+  });
 });
 
 describe('@airin-play/core/v2: победная цепочка', () => {
@@ -68,5 +80,21 @@ describe('@airin-play/core/v2: победная цепочка', () => {
   it('детерминированно строит одну и ту же цепочку', () => {
     const history = asTurns(['СС', 'ЗК', 'ЗК']);
     expect(engineV2.buildIdealChain(history)).toEqual(engineV2.buildIdealChain(history));
+  });
+
+  it('продолжает маршрут после смешанной истории без прогнозирования прошедшего хода ИИ', () => {
+    const history = [
+      { reply: 'СС', type: 'controlled' as const, outcome: 'player' as const },
+      { reply: 'ЗК', type: 'anonymous' as const, outcome: 'ai' as const },
+      { type: 'anonymous' as const, outcome: 'missed' as const },
+    ];
+    const current = engineV2.calculateState(history);
+    const route = engineV2.buildIdealChain(history);
+
+    expect(current.scores).toEqual({ blue: 2, green: 1, red: 1 });
+    expect(current.audience).toBe(0);
+    expect(route.steps).toHaveLength(13);
+    expect(route.steps[0]?.number).toBe(4);
+    expect(route.finalAudience).toBeGreaterThanOrEqual(current.audience);
   });
 });
